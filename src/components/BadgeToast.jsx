@@ -1,4 +1,5 @@
 import { describeBadge } from '../store/progress'
+import BadgeIcon from './BadgeIcon'
 
 /**
  * Inline announcement for badges just earned by a solve (not a persistent
@@ -19,13 +20,16 @@ export default function BadgeToast({ badgeIds, onDismiss }) {
         {badgeIds.map((id) => {
           const info = describeBadge(id)
           return (
-            <li key={id}>
-              <strong>{info.title}</strong> - {info.description}
+            <li key={id} className="badge-toast__item">
+              <BadgeIcon badgeId={id} size={32} />
+              <span>
+                <strong>{info.title}</strong> - {info.description}
+              </span>
             </li>
           )
         })}
       </ul>
-      <button type="button" onClick={onDismiss}>
+      <button type="button" className="btn btn--small" onClick={onDismiss}>
         Dismiss
       </button>
     </div>

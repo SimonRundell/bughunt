@@ -34,7 +34,7 @@ export default function HintPanel({ hintCount, revealedTiers, hintContent, onRev
                 Hint {tier}: {TIER_NAMES[tier]}
               </strong>
               {!revealed && isNext && (
-                <button type="button" onClick={() => onReveal(tier)}>
+                <button type="button" className="btn btn--small" onClick={() => onReveal(tier)}>
                   Reveal (-{Math.round(DEFAULT_SCORING.hintPenaltyPct[tier] * 100)}% XP)
                 </button>
               )}

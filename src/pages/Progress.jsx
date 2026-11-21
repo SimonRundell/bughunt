@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import XpBar from '../components/XpBar'
+import BadgeIcon from '../components/BadgeIcon'
 import { createEmptyProgress, describeBadge, exportProgress, importProgress, loadProgress, saveProgress } from '../store/progress'
 
 /**
@@ -57,7 +58,7 @@ export default function Progress() {
 
   return (
     <div className="progress-page">
-      <Link to="/">&larr; Home</Link>
+      <Link to="/" className="btn btn--small back-link">&larr; Home</Link>
       <h1>Your progress</h1>
 
       <XpBar xp={progress.xp} />
@@ -71,8 +72,11 @@ export default function Progress() {
           {progress.badges.map((id) => {
             const info = describeBadge(id)
             return (
-              <li key={id}>
-                <strong>{info.title}</strong> - {info.description}
+              <li key={id} className="progress-page__badge">
+                <BadgeIcon badgeId={id} size={48} />
+                <span>
+                  <strong>{info.title}</strong> - {info.description}
+                </span>
               </li>
             )
           })}
@@ -85,14 +89,14 @@ export default function Progress() {
         want to keep it.
       </p>
       <div className="progress-page__actions">
-        <button type="button" onClick={handleExport}>
+        <button type="button" className="btn btn--primary" onClick={handleExport}>
           Export progress
         </button>
-        <button type="button" onClick={() => fileInputRef.current?.click()}>
+        <button type="button" className="btn" onClick={() => fileInputRef.current?.click()}>
           Import progress
         </button>
         <input ref={fileInputRef} type="file" accept="application/json" hidden onChange={handleImportFile} />
-        <button type="button" onClick={handleReset}>
+        <button type="button" className="btn btn--danger" onClick={handleReset}>
           {confirmReset ? 'Really reset everything? Click again to confirm' : 'Reset progress'}
         </button>
       </div>

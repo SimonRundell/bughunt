@@ -101,10 +101,10 @@ export default function Playground() {
       </div>
       <div className="playground__side">
         <div className="playground__toolbar">
-          <button type="button" onClick={handleRun} disabled={status !== 'ready'}>
+          <button type="button" className="btn btn--primary" onClick={handleRun} disabled={status !== 'ready'}>
             Run
           </button>
-          <button type="button" onClick={handleStop} disabled={status !== 'running'}>
+          <button type="button" className="btn" onClick={handleStop} disabled={status !== 'running'}>
             Stop
           </button>
           <span className="playground__status">

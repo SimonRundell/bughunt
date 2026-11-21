@@ -139,6 +139,17 @@ const RULES = {
       },
     },
   ],
+  TabError: [
+    {
+      result: {
+        title: 'Tabs and spaces mixed',
+        plain: "Some lines use a tab character to indent and others use spaces, and Python can't be sure they line up at the same level.",
+        causes: ['Copy-pasting code from somewhere that used a different indent style.', 'An editor auto-indenting with a tab on one line but spaces on another.'],
+        whereToLook: 'Re-indent the reported line (and its neighbours) using spaces only.',
+        conceptSlug: 'indentation',
+      },
+    },
+  ],
   NameError: [
     {
       result: (message) => ({

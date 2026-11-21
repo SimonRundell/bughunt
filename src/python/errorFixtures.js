@@ -44,6 +44,10 @@ export const errorFixtures = [
     error: { type: 'IndentationError', message: 'unindent does not match any outer indentation level', line: 3, traceback: '' },
   },
   {
+    label: 'Tabs and spaces mixed',
+    error: { type: 'TabError', message: 'inconsistent use of tabs and spaces in indentation', line: 3, traceback: '' },
+  },
+  {
     label: 'Misspelled variable',
     error: { type: 'NameError', message: "name 'totl' is not defined", line: 4, traceback: '' },
   },

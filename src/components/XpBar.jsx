@@ -17,7 +17,7 @@ export default function XpBar({ xp }) {
       <div className="xp-bar__labels">
         <strong>{rank}</strong>
         <span>
-          {xp} XP{next ? ` · ${next.minXp - xp} to ${next.name}` : ' · Max rank'}
+          &nbsp; {xp} XP{next ? ` · ${next.minXp - xp} to ${next.name}` : ' · Max rank'}
         </span>
       </div>
       <div className="xp-bar__track">

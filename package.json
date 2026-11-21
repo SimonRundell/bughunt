@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest",
     "postinstall": "node scripts/copy-pyodide.mjs",
-    "doctor": "npx react-doctor@latest"
+    "doctor": "npx react-doctor@latest",
+    "seed:generate": "node scripts/seed/generate.mjs"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",

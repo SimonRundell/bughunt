@@ -1,23 +1,45 @@
+/*
+ * Design tokens (CLAUDE.md "CSS rules"). Dark is the only look - a
+ * deliberate choice for the Tron mood, not a prefers-color-scheme branch.
+ * Every colour pair below has been checked against WCAG contrast math
+ * before being chosen - see PROGRESS.md for the ratios. Breakpoints are
+ * 600px / 900px / 1200px, mobile-first (base styles are the narrow
+ * layout; @media (min-width) widens it), per CLAUDE.md.
+ */
 :root {
-  --text: #1f2028;
-  --bg: #ffffff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
+  --bg: #05080c;
+  --bg-elevated: #0d1420;
+  --text: #e8f4f8;
+  --text-muted: #9fb3bd;
+  --border: #5a6e76;
+  --accent: #2de2e6;
+  --accent-strong: #6ff2f5;
+  --on-accent: #03181a;
+  --danger: #ffb020;
+  --on-danger: #1a1100;
+  --focus-ring: 0 0 0 3px rgba(45, 226, 230, 0.35);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+
+  --font-size-sm: 0.85rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.15rem;
+  --font-size-xl: 1.4rem;
+
   --mono: 'Courier New', ui-monospace, monospace;
   --ui: 'Trebuchet MS', system-ui, sans-serif;
 
-  color-scheme: light dark;
+  color-scheme: dark;
   color: var(--text);
   background: var(--bg);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #e5e4e7;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-  }
 }
 
 * {
@@ -26,7 +48,16 @@
 
 body {
   margin: 0;
+  min-height: 100svh;
   font-family: var(--ui);
+  font-size: var(--font-size-base);
+  background-color: var(--bg);
+  /* A faint grid, not a gradient hero - the one deliberate nod to the
+     Tron reference. Low enough opacity that it never competes with text. */
+  background-image:
+    repeating-linear-gradient(0deg, color-mix(in srgb, var(--accent) 7%, transparent) 0 1px, transparent 1px 40px),
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--accent) 7%, transparent) 0 1px, transparent 1px 40px);
+  background-attachment: fixed;
 }
 
 #root {
@@ -38,36 +69,154 @@ pre {
   font-family: var(--mono);
 }
 
+h1, h2, h3, h4 {
+  font-family: var(--ui);
+}
+
+a {
+  color: var(--accent);
+}
+
+/* Every interactive element gets a visible, consistent ring - never
+   `outline: none` without this replacement. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  box-shadow: var(--focus-ring);
+}
+
+.site-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.site-header__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  text-decoration: none;
+  color: var(--text);
+}
+
+.site-header__brand h1 {
+  font-size: var(--font-size-lg);
+  margin: 0;
+}
+
+.site-header__logo {
+  width: 32px;
+  height: 32px;
+}
+
+.site-header .xp-bar {
+  margin-left: auto;
+  min-width: 180px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------- Buttons ---------- */
+/* One primary per view (solid accent fill), secondary is outlined,
+   destructive uses the danger colour. Every button keeps a 44x44 minimum
+   touch target regardless of visual size. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  min-width: 44px;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-family: var(--ui);
+  font-size: var(--font-size-base);
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--accent-strong);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: bold;
+}
+
+.btn--primary:hover:not(:disabled) {
+  box-shadow: var(--focus-ring);
+}
+
+.btn--danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.btn--danger:hover:not(:disabled) {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 35%, transparent);
+}
+
+.btn--small {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-sm);
+}
+
+/* ---------- Playground (mobile-first) ---------- */
 .playground {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1px;
-  height: 100svh;
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
 }
 
 .playground__editor {
-  height: 100%;
+  height: 50svh;
 }
 
 .playground__side {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 8px;
+  gap: var(--space-2);
+  padding: var(--space-2);
   overflow-y: auto;
-  border-left: 1px solid var(--border);
+  border-top: 1px solid var(--border);
 }
 
 .playground__toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .playground__inputs {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .playground__inputs textarea {
@@ -75,15 +224,33 @@ pre {
 }
 
 .playground__footer {
-  font-size: 0.85em;
-  opacity: 0.75;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
 }
 
+@media (min-width: 900px) {
+  .playground {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+  }
+
+  .playground__editor {
+    height: 100%;
+  }
+
+  .playground__side {
+    border-top: none;
+    border-left: 1px solid var(--border);
+  }
+}
+
+/* ---------- Console / Error Explainer / Tests ---------- */
 .console {
-  background: var(--code-bg);
+  background: var(--bg-elevated);
   border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 8px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
   min-height: 160px;
 }
 
@@ -94,29 +261,45 @@ pre {
 }
 
 .console__stderr {
-  color: #c0392b;
+  color: var(--danger);
 }
 
 .console__input-row {
   display: flex;
-  gap: 4px;
-  margin-top: 4px;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
 }
 
 .console__input-row input {
   flex: 1;
+  min-height: 44px;
   font-family: var(--mono);
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-2);
 }
 
 .error-explainer {
   border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 8px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+  background: var(--bg-elevated);
+}
+
+.error-explainer__empty {
+  color: var(--text-muted);
 }
 
 .error-explainer__raw {
   font-family: var(--mono);
-  font-size: 0.9em;
+  font-size: var(--font-size-sm);
+}
+
+.error-explainer__concept {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
 }
 
 .test-results__summary {
@@ -129,31 +312,32 @@ pre {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .test-results__item {
   border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 6px 8px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
 }
 
 .test-results__item--passed {
-  border-left: 4px solid #2e7d32;
+  border-left: 4px solid var(--accent);
 }
 
 .test-results__item--failed {
-  border-left: 4px solid #c0392b;
+  border-left: 4px solid var(--danger);
 }
 
 .test-results__item--running {
-  border-left: 4px solid #b58b00;
+  border-left: 4px solid var(--text-muted);
 }
 
 .test-results__head {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .test-results__icon {
@@ -167,20 +351,20 @@ pre {
 }
 
 .test-results__state-text {
-  font-size: 0.85em;
-  opacity: 0.75;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
 }
 
 .test-results__hidden-note,
 .test-results__detail {
-  margin: 6px 0 0;
+  margin: var(--space-2) 0 0;
   font-size: 0.9em;
 }
 
 .test-results__detail {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 2px 8px;
+  gap: 2px var(--space-2);
 }
 
 .test-results__detail dt {
@@ -189,28 +373,30 @@ pre {
 
 .test-results__detail dd {
   margin: 0;
+  font-family: var(--mono);
 }
 
+/* ---------- Debugging Loop ---------- */
 .debug-loop {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .debug-loop__step {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  padding: 4px;
-  border-radius: 4px;
-  opacity: 0.6;
+  gap: var(--space-2);
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
 }
 
 .debug-loop__step--done {
-  opacity: 1;
+  color: var(--text);
 }
 
 .debug-loop__number {
@@ -222,13 +408,13 @@ pre {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.85em;
+  font-size: var(--font-size-sm);
 }
 
 .debug-loop__step--done .debug-loop__number {
-  background: #2e7d32;
-  border-color: #2e7d32;
-  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
 }
 
 .debug-loop__text {
@@ -237,31 +423,33 @@ pre {
 }
 
 .debug-loop__prompt {
-  font-size: 0.85em;
-  opacity: 0.85;
+  font-size: var(--font-size-sm);
 }
 
+/* ---------- Hints ---------- */
 .hint-panel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .hint-panel__tier {
   border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 6px 8px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
 }
 
 .hint-panel__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
 .hint-panel__content {
-  margin-top: 6px;
+  margin-top: var(--space-2);
   font-size: 0.95em;
 }
 
@@ -274,13 +462,15 @@ pre {
 }
 
 .hint-panel__locked {
-  margin: 4px 0 0;
-  font-size: 0.85em;
-  opacity: 0.7;
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
 }
 
+/* ---------- Explanation panel ---------- */
 .explanation-panel__xp {
   font-weight: bold;
+  color: var(--accent);
 }
 
 .explanation-panel__bugs {
@@ -288,7 +478,7 @@ pre {
 }
 
 .explanation-panel__bugs > li {
-  margin-bottom: 10px;
+  margin-bottom: var(--space-3);
 }
 
 .explanation-panel__bugs :first-child {
@@ -296,7 +486,7 @@ pre {
 }
 
 .explanation-panel__fix-label {
-  margin: 4px 0 0;
+  margin: var(--space-1) 0 0;
   font-style: italic;
 }
 
@@ -306,25 +496,26 @@ pre {
 
 .explanation-panel__diff {
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
 .explanation-panel__concepts {
-  font-size: 0.85em;
-  opacity: 0.75;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
 }
 
 .bughunt-bug-line {
-  background: rgba(197, 144, 0, 0.18);
+  background: color-mix(in srgb, var(--danger) 18%, transparent);
 }
 
 .bughunt-bug-line-margin {
-  background: #c59000;
+  background: var(--danger);
   width: 4px !important;
   margin-left: 3px;
 }
 
+/* ---------- Puzzle page (mobile-first) ---------- */
 .puzzle {
   display: flex;
   flex-direction: column;
@@ -333,123 +524,245 @@ pre {
 
 .puzzle__header {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 12px;
-  padding: 8px 12px;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
   border-bottom: 1px solid var(--border);
 }
 
 .puzzle__header h1 {
-  font-size: 1.1em;
+  font-size: var(--font-size-lg);
   margin: 0;
 }
 
 .puzzle__meta {
   margin-left: auto;
-  font-size: 0.85em;
-  opacity: 0.75;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
 }
 
 .puzzle__layout {
   flex: 1;
-  display: grid;
-  grid-template-columns: 260px 1fr 320px;
-  gap: 1px;
+  display: flex;
+  flex-direction: column;
   min-height: 0;
+}
+
+/* Mobile-first order (BUILD.md 9.2): the editor comes first within the
+   3-column area - that's the one thing every student needs to find
+   immediately - then the brief/debugging loop/hints sidebar (brief is its
+   first section, so it's still an early read), then the feedback tabs
+   last. (The Run/Run tests toolbar itself lives above this whole area,
+   right under the page header - see .puzzle__toolbar.) Desktop restores
+   the 3-column reading order via explicit grid placement below, where
+   order no longer applies. */
+.puzzle__editor {
+  order: 1;
+}
+
+.puzzle__left {
+  order: 2;
+}
+
+.puzzle__side {
+  order: 3;
 }
 
 .puzzle__left,
 .puzzle__side {
   overflow-y: auto;
-  padding: 8px;
+  padding: var(--space-2);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
+}
+
+.puzzle__next-step {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 .puzzle__left {
-  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 .puzzle__side {
-  border-left: 1px solid var(--border);
+  border-top: 1px solid var(--border);
 }
 
 .puzzle__left h2,
 .puzzle__side h2 {
-  font-size: 0.95em;
-  margin: 0 0 6px;
+  font-size: var(--font-size-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin: 0 0 var(--space-2);
+}
+
+.puzzle__left textarea {
+  width: 100%;
+  background: var(--bg-elevated);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+  font-family: var(--ui);
 }
 
 .puzzle__editor {
-  min-height: 0;
+  /* Monaco (unlike flowing text) manages its own internal scrolling and
+     needs a definite height to compute its viewport correctly - a
+     min-height here left @monaco-editor/react's height:100% wrapper
+     unable to resolve against an indefinite parent size, rendering only
+     a sliver of the editor regardless of the container's actual
+     on-screen size. */
+  height: 40svh;
 }
 
 .puzzle__tabs {
   display: flex;
-  gap: 4px;
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--border);
 }
 
-.puzzle__tabs button[aria-selected='true'] {
+.tab-button {
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-family: var(--ui);
+  font-size: var(--font-size-base);
+  cursor: pointer;
+}
+
+.tab-button[aria-selected='true'] {
+  color: var(--text);
+  border-bottom-color: var(--accent);
   font-weight: bold;
-  text-decoration: underline;
 }
 
 .puzzle__toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-top: 1px solid var(--border);
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
 }
 
 .puzzle__status {
   margin-left: auto;
-  font-size: 0.9em;
-  opacity: 0.8;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
 }
 
+@media (min-width: 900px) {
+  .puzzle__layout {
+    display: grid;
+    grid-template-columns: 260px 1fr 320px;
+    gap: 1px;
+  }
+
+  /* Explicit grid-row matters here, not just grid-column: auto-placement
+     still processes items in `order` sequence (editor, side, left - see
+     the mobile-first rules above), so without pinning every item to row 1
+     explicitly, `.puzzle__left` (placed last) gets auto-placed into an
+     implicit second row instead of sitting beside the other two. */
+  .puzzle__left {
+    grid-column: 1;
+    grid-row: 1;
+    border-bottom: none;
+    border-right: 1px solid var(--border);
+  }
+
+  .puzzle__editor {
+    grid-column: 2;
+    grid-row: 1;
+    min-height: 0;
+  }
+
+  .puzzle__side {
+    grid-column: 3;
+    grid-row: 1;
+    border-top: none;
+    border-left: 1px solid var(--border);
+  }
+}
+
+/* ---------- XP bar / badges ---------- */
 .xp-bar__labels {
   display: flex;
   justify-content: space-between;
-  font-size: 0.9em;
-  margin-bottom: 4px;
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-1);
 }
 
 .xp-bar__track {
   height: 10px;
   border-radius: 5px;
-  background: var(--code-bg);
+  background: var(--bg-elevated);
   border: 1px solid var(--border);
   overflow: hidden;
 }
 
 .xp-bar__fill {
   height: 100%;
-  background: #2e7d32;
+  background: var(--accent);
 }
 
 .badge-toast {
-  margin: 8px 12px;
-  padding: 8px 12px;
-  border: 1px solid #2e7d32;
-  border-radius: 4px;
-  background: rgba(46, 125, 50, 0.1);
+  margin: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 .badge-toast ul {
-  margin: 4px 0;
-  padding-left: 1.2em;
+  margin: var(--space-1) 0;
+  padding-left: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.badge-toast__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.badge-icon {
+  flex-shrink: 0;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+}
+
+.badge-icon--placeholder {
+  display: inline-block;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg-elevated);
+}
+
+/* ---------- Home / Track / Progress ---------- */
+.home,
+.track,
+.progress-page {
+  max-width: 70ch;
+  margin: 0 auto;
+  padding: var(--space-4);
 }
 
 .home {
   max-width: 900px;
-  margin: 0 auto;
-  padding: 16px;
-}
-
-.home__header {
-  margin-bottom: 24px;
 }
 
 .home__tracks {
@@ -457,72 +770,71 @@ pre {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .home__track {
   border: 1px solid var(--border);
-  border-radius: 6px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
 }
 
 .home__track a {
   display: block;
-  padding: 12px;
+  padding: var(--space-3);
   text-decoration: none;
   color: inherit;
+  min-height: 44px;
 }
 
 .home__track h2 {
-  margin: 0 0 4px;
-  font-size: 1.1em;
+  margin: 0 0 var(--space-1);
+  font-size: var(--font-size-lg);
+  color: var(--accent);
 }
 
 .home__track p {
-  margin: 0 0 4px;
-  opacity: 0.85;
+  margin: 0 0 var(--space-1);
 }
 
 .home__track-count {
-  font-size: 0.85em;
-  opacity: 0.7;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
 }
 
 .home__footer-nav {
   display: flex;
-  gap: 16px;
-  margin-top: 16px;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
 }
 
-.track,
-.progress-page {
-  max-width: 700px;
-  margin: 0 auto;
-  padding: 16px;
-}
 
 .track__puzzles {
   list-style: none;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .track__puzzles a {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: var(--space-2);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
   text-decoration: none;
   color: inherit;
 }
 
 .track__puzzle-meta {
   margin-left: auto;
-  font-size: 0.85em;
-  opacity: 0.7;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
 }
 
 .progress-page__badges {
@@ -530,33 +842,246 @@ pre {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
+}
+
+.progress-page__badge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .progress-page__actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   flex-wrap: wrap;
 }
 
-@media (max-width: 900px) {
-  .puzzle__layout {
-    grid-template-columns: 1fr;
-    height: auto;
-  }
-
-  .puzzle__editor {
-    height: 50svh;
-  }
+/* ---------- Admin ---------- */
+.admin-login {
+  max-width: 360px;
+  margin: 10vh auto 0;
+  padding: var(--space-4);
 }
 
-@media (max-width: 900px) {
-  .playground {
-    grid-template-columns: 1fr;
-    height: auto;
-  }
+.admin-login form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
 
-  .playground__editor {
-    height: 50svh;
-  }
+.admin-login label {
+  font-weight: bold;
+}
+
+.admin-login input {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-md, 1rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--text);
+  min-height: 44px;
+}
+
+.admin-login__error {
+  color: var(--danger);
+  margin: 0;
+}
+
+.admin-layout {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-3);
+}
+
+.admin-layout__nav {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  margin-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-layout__nav a {
+  text-decoration: none;
+  color: var(--text-muted);
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.admin-layout__nav a.active {
+  color: var(--accent);
+  font-weight: bold;
+}
+
+.admin-layout__who {
+  margin-left: auto;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.admin-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.admin-toolbar h1,
+.admin-toolbar h2 {
+  margin: 0;
+  margin-right: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: var(--space-5);
+}
+
+.admin-table th,
+.admin-table td {
+  text-align: left;
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 600px;
+  margin-bottom: var(--space-5);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+}
+
+.admin-form--wide {
+  max-width: none;
+}
+
+.admin-form label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+}
+
+.admin-form input,
+.admin-form select,
+.admin-form textarea {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+  font-family: var(--ui);
+  font-size: var(--font-size-base);
+  min-height: 44px;
+}
+
+.admin-form textarea {
+  min-height: 0;
+  font-family: var(--mono);
+}
+
+.admin-form__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.admin-form__split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.admin-form__preview {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  background: var(--bg);
+  overflow-y: auto;
+}
+
+.admin-checkbox {
+  flex-direction: row !important;
+  align-items: center;
+  gap: var(--space-2) !important;
+}
+
+.admin-code-pane {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  margin-bottom: var(--space-4);
+}
+
+.admin-code-pane--split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  border: none;
+}
+
+.admin-code-pane--split > div {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.admin-code-pane--split h3 {
+  margin: 0;
+  padding: var(--space-2);
+  font-size: var(--font-size-sm);
+  background: var(--bg-elevated);
+}
+
+.admin-bug-row,
+.admin-test-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  margin-bottom: var(--space-2);
+}
+
+.admin-bug-row label,
+.admin-test-row label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+}
+
+.admin-bug-row input,
+.admin-test-row input,
+.admin-bug-row select,
+.admin-test-row select,
+.admin-bug-row textarea,
+.admin-test-row textarea {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+  min-height: 44px;
+}
+
+.admin-concept-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
 }

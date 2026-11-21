@@ -9,6 +9,10 @@ import { BADGES, trackCompleteBadgeId } from '../config/scoring'
 
 export const STORAGE_KEY = 'bughunt.progress.v1'
 export const CURRENT_VERSION = 1
+/** Dispatched on `window` after every successful save, so long-lived
+ * components (e.g. the site header's XP bar) can refresh without a
+ * dedicated store/context - see SiteHeader.jsx. */
+export const PROGRESS_CHANGED_EVENT = 'bughunt-progress-changed'
 
 /** @returns {object} a brand-new, empty progress object */
 export function createEmptyProgress() {
@@ -67,6 +71,7 @@ export function loadProgress() {
 export function saveProgress(progress) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(progress))
+    window.dispatchEvent(new CustomEvent(PROGRESS_CHANGED_EVENT))
     return true
   } catch {
     return false

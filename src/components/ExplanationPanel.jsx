@@ -73,6 +73,7 @@ export default function ExplanationPanel({ solution, studentCode, xpAwarded, gav
         <DiffEditor
           height="300px"
           language="python"
+          theme="vs-dark"
           original={studentCode}
           modified={solution.fixed_code}
           onMount={handleDiffMount}
@@ -81,6 +82,7 @@ export default function ExplanationPanel({ solution, studentCode, xpAwarded, gav
             renderSideBySide: true,
             fontFamily: "'Courier New', monospace",
             minimap: { enabled: false },
+            automaticLayout: true,
           }}
         />
       </div>

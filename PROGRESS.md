@@ -5,10 +5,89 @@ built, what's verified, and what's still open, so work can be picked up
 without re-deriving context. Updated at the end of each phase (and
 mid-phase when something notable changes).
 
-## Status: Phase 2 done (puzzle player), Phase 3 not started
+## Status: Phase 3 done (backend and admin), Phase 4 not started
 
-Last verified: 2026-11-20, against the live dev server (`npm run dev`,
+Last verified: 2026-11-21, against the live dev server (`npm run dev`,
 Vite on :5173) and Laragon's Apache/PHP (:80) + MariaDB (:3306).
+
+## Design pass (2026-11-20) - applying CLAUDE.md's UI/UX and accessibility rules
+
+Phase 2's components were built functionally correct but with zero
+application of CLAUDE.md's design brief (Tron/futuristic mood) or several
+of its CSS/accessibility rules (tokens, spacing scale, touch targets,
+mobile-first breakpoints). Audited and fixed in this pass:
+
+- **`frontend-design`, `design:design-system`, `design:accessibility-review`
+  skills are not installed in this environment** - this review was done
+  manually against CLAUDE.md's written rules instead of running those
+  skills. If they get installed later, worth a proper pass through them.
+- **Full token rewrite in `src/index.css`**: every colour is now a CSS
+  variable (`--bg`, `--bg-elevated`, `--text`, `--text-muted`, `--border`,
+  `--accent`, `--accent-strong`, `--danger`, `--on-accent`/`--on-danger`),
+  plus a spacing scale (`--space-1` to `--space-6`) and radius/font-size
+  tokens. No hardcoded hex values remain outside `:root`.
+- **Dark is the only theme** (Simon's call, not a `prefers-color-scheme`
+  branch - Tron doesn't have a sensible light variant). Every colour pair
+  actually used (text/muted-text/accent/danger against both backgrounds,
+  borders against both backgrounds) was checked against WCAG contrast
+  maths before being picked, not eyeballed - see the ratios below.
+- **A `.btn` system**: one primary (solid accent fill) per view, plain
+  outlined secondary, `.btn--danger` for Give Up/Reset, all with a
+  44x44px minimum touch target regardless of visual size. Monaco's theme
+  defaults to `vs-dark` to match.
+- **Mobile-first layout**: Playground and the Puzzle page now start as a
+  single stacked column and widen to their grid layout at
+  `@media (min-width: 900px)`, replacing the old max-width override
+  approach.
+- **Touch targets**: fixed plain `<Link>` back-links and footer nav
+  (were ~21px tall) with a shared `.back-link`/`.home__footer-nav a`
+  rule enforcing 44px.
+- **Global `:focus-visible` ring** (cyan outline + glow) and a
+  `prefers-reduced-motion` guard, neither of which existed before.
+- **The subtle background grid** (two low-opacity `repeating-linear-
+  gradient`s on `body`, colour tied to `--accent` via `color-mix()`) is
+  the one deliberate Tron reference - flat panels otherwise, no
+  glassmorphism, no gradients-as-hero, per the "avoid" list.
+
+### Contrast ratios actually used (dark theme, the only one now)
+
+| Pair | Ratio |
+|---|---|
+| `--text` on `--bg` / `--bg-elevated` | 17.89:1 / 16.46:1 |
+| `--text-muted` on `--bg` / `--bg-elevated` | 9.23:1 / 8.49:1 |
+| `--accent` on `--bg` / `--bg-elevated` | 12.55:1 / 11.54:1 |
+| `--danger` on `--bg` / `--bg-elevated` | 10.97:1 / 10.09:1 |
+| `--border` on `--bg` / `--bg-elevated` | 3.75:1 / 3.45:1 (UI-border tier) |
+| `--on-accent` (#03181a) on `--accent` | 11.43:1 |
+| `--on-danger` (#1a1100) on `--danger` | 10.22:1 |
+
+A light-theme palette was also derived and verified (same method, darker
+accent/danger shades so small text still hits 4.5:1 on white) before
+Simon said to drop it and stick with dark only - not kept, since
+reintroducing it later would need re-deriving those shades rather than
+reusing anything currently in the code.
+
+### Verified live (Laragon + Vite dev server)
+
+- Home, Track, Puzzle and Progress pages all render correctly in dark
+  mode at 375px and 1280px widths (measured via `getBoundingClientRect`,
+  not just screenshots, which compress badly at this chat's thumbnail
+  size and can look mis-centred when they aren't).
+- `.btn` touch targets measured at exactly 44px even for `.btn--small`
+  variants (hint reveal, badge dismiss).
+- Selected tab shows both an underline and bold weight, not colour alone.
+- `npm run build` and `oxlint` both clean.
+
+### Known gap
+
+- **`:focus-visible` could not be fully verified through this automation
+  layer.** The preview tool can't dispatch a trusted keyboard Tab event. a
+  programmatic `.focus()` call correctly does *not* trigger
+  `:focus-visible` (that's correct browser behaviour, not a bug in the
+  CSS), but it means the real keyboard experience hasn't been directly
+  observed, only reasoned about from how `:focus-visible` is specified to
+  work. Worth an actual Tab-through on a real keyboard before considering
+  this fully signed off.
 
 ## Local environment (this machine)
 
@@ -273,16 +352,192 @@ don't exist yet.
   becomes a recurring need, `/run-skill-generator` could capture that
   recipe properly.
 
-## Next: Phase 3 (Backend and admin)
+## Phase 3 (Backend and admin) - done, browser-verified
 
-Per BUILD.md 13: `api/sql/schema.sql` + `seed.sql` (tracks, concepts and
-the 5 sample puzzles already in `samplePuzzles.json` are a natural seed
-set), the public endpoints (`tracks.php`, `puzzles.php`, `puzzle.php`,
-`hint.php`, `solution.php`, `concepts.php`/`concept.php`), then switch
-`puzzleSource.js`'s callers (or replace it with `src/api/puzzles.js`)
-from the local JSON to Axios calls against those endpoints. Then admin
-auth (`create_admin.php`, hashed bearer tokens, login rate limiting), the
-puzzle editor with its Verify flow (reusing the same browser runner the
-player uses), tracks/concepts CRUD, and import/export. Build phase-by-
-phase and stop for a smoke test per BUILD.md section 14 before moving to
-Phase 4.
+BUILD.md never specified teacher-vs-admin roles (it assumed one admin).
+Simon's brief for this phase asked for admin + teacher accounts (teachers
+added by admin, admin is also a teacher) and the full Appendix A seed
+list rather than a handful of sample puzzles, so this phase is a
+deliberate extension of BUILD.md 13's Phase 3 scope, agreed via
+clarifying questions before starting: opaque hashed bearer tokens (not
+JWT - simpler and matches BUILD.md 5.2's original design for a
+single-service app), teacher role = everything admin can do except
+account management, full ~55-puzzle Appendix A seed, and stable-per-
+student puzzle randomisation (shuffled once, persisted, not reshuffled
+every visit).
+
+### What's built
+
+- **`api/sql/schema.sql`**: every table from BUILD.md 6, plus
+  `bh_admins.role ENUM('admin','teacher')` and `created_by` (self-FK) -
+  the role extension above. All InnoDB/utf8mb4, child tables cascade-
+  delete from their puzzle/concept parent.
+- **`scripts/seed/`**: `build.mjs` (shared Node+Pyodide verification
+  helpers - `deriveExpected` runs the *real* fixed_code through the same
+  harness the browser uses to derive correct `expect_py` values rather
+  than hand-computing them, `verify` checks fixed passes everything and
+  buggy fails at least one), `track1.mjs`-`track5.mjs` (55 fully-authored
+  puzzles), `concepts.mjs` (38 concept cards), `generate.mjs` (re-
+  verifies every puzzle against the live Pyodide runtime and refuses to
+  write `seed.sql` if any fail - `npm run seed:generate`). One puzzle
+  (`the-search-that-hangs`) has a genuinely infinite loop in its buggy
+  code by design; this script has no timeout/interrupt wiring (that's
+  browser-only), so it's verified fixed-code-only via a documented
+  `SKIP_BUGGY_VERIFY` exception.
+- **`api/lib/auth.php`**: `random_bytes(32)` bearer tokens, only the
+  SHA-256 hash stored (`bh_admin_tokens`), `PASSWORD_ARGON2ID` for
+  account passwords, IP-based login rate limiting
+  (`maxLoginAttemptsPer15Min`, default 8, in `.config.json`'s `auth`
+  block), `bh_require_admin($minRole)` where `'admin'` satisfies any
+  `'teacher'`-level check.
+- **`api/tools/create_admin.php`**: CLI-only bootstrap (refuses to run
+  under a web SAPI) - how the first account gets created.
+- **`api/admin/login.php`/`logout.php`/`me.php`/`accounts.php`**:
+  session lifecycle plus admin-only (not teacher) account create/list/
+  delete, with self-delete blocked.
+- **`api/admin/change_password.php`** (added mid-phase, Simon's
+  follow-up request): self-service password change for *any* logged-in
+  account on its own row - verifies the current password with
+  `password_verify` before updating, no `admin`-role requirement since it
+  never touches another account's row.
+- **Public read API** (`tracks.php`, `puzzles.php`, `puzzle.php`,
+  `hint.php`, `solution.php`, `concepts.php`, `concept.php`) per BUILD.md
+  5.3, and the **admin CRUD API** (`admin/puzzles.php`, `puzzle.php`,
+  `verify.php`, `tracks.php`, `concepts.php`, `export.php`, `import.php`)
+  with `api/lib/puzzle_hash.php` computing the "has anything verification-
+  relevant changed" hash that gates publishing.
+- **Frontend switched from local JSON to the real API**: `src/api/
+  puzzles.js` (replaces `src/dev/puzzleSource.js`), `src/store/
+  puzzleOrder.js` (`applyStableRandomOrder` - Fisher-Yates shuffle once
+  per track, order persisted in `localStorage` so it doesn't reshuffle on
+  every visit), `Home.jsx`/`Track.jsx`/`Puzzle.jsx` updated to the async
+  API shape.
+- **Badge art**: `src/config/badgeImages.js` + `BadgeIcon.jsx` map badge
+  ids to the PNGs Simon supplied in `/public/awards`, with a plain
+  geometric (non-emoji) placeholder for badges without art yet.
+- **Admin UI** (`src/pages/admin/`): `Login.jsx`, `AdminLayout.jsx`
+  (session-guarded nav, hides the student-facing `SiteHeader`/
+  `CMFloatAd` on `/admin/*`), `PuzzleList.jsx` (filter by track, export/
+  import bundle), `PuzzleEditor.jsx` (Monaco inline diff or side-by-side,
+  metadata/brief/tests/hints/bugs/concepts forms, Verify and Save &
+  Publish), `TrackList.jsx`, `ConceptList.jsx`, `Accounts.jsx` (admin
+  role only), `ChangePassword.jsx` (every role). `src/api/admin.js` holds
+  the bearer token in `sessionStorage` (not `localStorage` - shouldn't
+  outlive the tab or mix with student progress data) and attaches it via
+  an Axios interceptor.
+
+### Bugs found and fixed during this pass
+
+- **Seeded puzzles were `published` but never verified.** `generate.mjs`
+  ran every puzzle through the real Pyodide harness before writing
+  `seed.sql`, but never wrote that result into `verified_hash`/
+  `verified_at` - so all 55 puzzles sat in the database as published-but-
+  unverified, which the admin UI's own publish-gate (`admin/puzzle.php`)
+  would have refused to re-save without a fresh Verify. Fixed by adding
+  `verificationHash()` to `build.mjs`, an exact JS mirror of `api/lib/
+  puzzle_hash.php`'s hash (same field order, same JSON shape), and
+  writing `verified_hash`/`verified_at = NOW()` into every puzzle insert.
+  Caught by noticing the admin Puzzle list's "Verified" column showed
+  "-" for every published puzzle; confirmed by direct `SELECT` against
+  `bh_puzzles` before and after the fix.
+- **`admin/puzzle.php` PUT**: `'verified_at' => $stillVerified ? null :
+  null` was a copy-paste bug (always null regardless of condition).
+  Fixed by fetching `existing['verified_at']` up front and using
+  `$stillVerified ? $existing['verified_at'] : null`.
+- **`admin/tracks.php` PUT**: `SQLSTATE[HY093]: Invalid parameter
+  number` under `PDO::ATTR_EMULATE_PREPARES => false` - the full track-
+  fields array (including an unused `slug` key with no matching
+  placeholder) was passed straight to `->execute()`. Fixed with
+  `unset($f['slug'])` first; audited every other admin endpoint's bound-
+  parameter arrays for the same pattern, found no other instances.
+- **`export.php`/`import.php` envelope mismatch**: `export.php`
+  originally wrapped its bundle in the standard `{ok, data}` envelope,
+  but `import.php` expects the raw bundle directly (it's a "download a
+  file, re-upload that file" round trip, not a data-fetching call).
+  Fixed by having `export.php` bypass the envelope helper and emit the
+  raw JSON with `Content-Disposition: attachment`. Verified a full
+  export -> import round trip restores correct child-row counts and
+  resets everything to draft/unverified (importing should never silently
+  re-publish unreviewed content).
+- **`TabError` had no decoder entry.** Authoring the `mixed-signals`
+  puzzle (tabs vs spaces) exposed that `errorDecoder.js`/
+  `errorFixtures.js` didn't cover `TabError` at all. Added both.
+- **A handful of puzzle-content bugs**, all caught by the Node+Pyodide
+  verification harness rather than by hand: `and-or-or`'s buggy code used
+  `ast.literal_eval` on a non-literal expression; `nearly-equal`'s float
+  list summed to exactly `1.0` instead of demonstrating the intended
+  imprecision (fixed the operand order); `bank-account`/`inventory-
+  manager` compared a Python tuple against a JS-array-rendered-as-list
+  test expectation (fixed by returning lists, not tuples, from the
+  puzzle's own code).
+
+### Verified live (Laragon + Vite dev server, interactive browser preview)
+
+- **Public/student side**: Home lists all 5 tracks with correct puzzle
+  counts (10/10/12/13/10 = 55); a track page shows its puzzles in
+  randomised (not `sort_order`) sequence; opening a puzzle loads real
+  brief/buggy code/tests from the database, and running the buggy code
+  produces the expected error (`IndentationError` on "Indentation
+  Station").
+- **Admin auth**: unauthenticated calls to `admin/puzzles.php` correctly
+  405/401 (`{"ok":false,"error":{"code":"unauthorized",...}}`); login
+  rate limiting kicks in and blocks further attempts after repeated
+  failures within 15 minutes, exactly as configured.
+- **Admin puzzle editor**: opening an existing puzzle shows metadata,
+  brief, Monaco inline diff (buggy vs fixed, correctly highlighting e.g.
+  the missing colon), bugs/tests/hints sections populated; Verify
+  re-runs the real harness and flips the puzzle to "Verified. You can
+  publish it now."; Save & Publish is blocked with a 422 `not_verified`
+  error if the content hash no longer matches the last verification.
+- **Tracks, Concepts, Accounts pages**: all list and render correctly
+  from the live API.
+- **Account management**: admin can create a teacher account, the new
+  account shows up immediately, and delete (two-click confirm) removes
+  it; self-delete is blocked.
+- **Self-service password change**: wrong current password is rejected
+  with a clear message and makes no change; correct current password
+  changes it, confirmed by logging out and back in with the new
+  password, then restored to the standard dev credential for a clean
+  handoff.
+- **Full Phase 3 acceptance checklist (BUILD.md 13/14)**: admin can log
+  in, author a puzzle (new puzzle form exercised with metadata/tests/
+  hints/bugs sections all present), verify it, publish it, and it would
+  appear for a student; unverified puzzles cannot be published (422);
+  admin endpoints reject calls without a valid token (401).
+- `npx oxlint src/ api/` clean (same two pre-existing/accepted warnings
+  as Phase 2: `Track.jsx`'s and `PuzzleEditor.jsx`'s "reset state before
+  an async refetch" pattern, and `cmFloatAd.jsx`'s `Date`-in-render).
+
+### Known gaps / simplifications
+
+- **Admin puzzle editor is intentionally simplified** versus a "full"
+  content tool: bug line ranges are plain number inputs (no click-the-
+  gutter-in-Monaco flagging), tests are added/removed/reordered with
+  buttons (no drag-and-drop, no "capture this call from the fixed code"
+  helper), and there's no "preview as a student would see it" mode. Fine
+  for Simon authoring content directly; worth revisiting if non-technical
+  teachers end up authoring puzzles too.
+- **Badge art**: `trackcomplete2.png` was supplied but isn't referenced
+  anywhere (`badgeImages.js` only maps one `track-complete` image for all
+  tracks) - worth asking Simon whether it was meant to vary by track.
+  `trace-master`, `boss-slayer` and `streak` badges have no dedicated art
+  yet, but they're Phase 4/5 features and not actually earnable yet, so
+  this isn't blocking.
+- **Default admin credential** (`spr` / a test password set via
+  `create_admin.php`) is a dev-only bootstrap account - change it (or
+  create a proper named account and delete this one) before any real
+  deployment.
+- Per BUILD.md 14, this was a smoke test, not an exhaustive test suite -
+  Simon should still exercise the admin UI himself before trusting it
+  fully, particularly edge cases in the puzzle editor (script-mode entry,
+  `raises`/`float_tol`/`trim_stdout` test variants, concept linking).
+
+## Next: Phase 4 (Deeper teaching features)
+
+Per BUILD.md 13: Tracer and the Trace tab (variable watch, trace table,
+"trace this test case"), concept cards with runnable snippets and the
+`/concepts` route (38 concept cards already exist in the database from
+this phase, just not surfaced as a browsable page yet), Diagnose
+(flag-a-line-and-pick-a-type) and the Predict-first prompt (the
+`predict_prompt_md` field already exists on puzzles and is already
+authored for several of them, just not wired into the player UI).

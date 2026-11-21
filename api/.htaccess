@@ -1,0 +1,12 @@
+RewriteEngine On
+RewriteCond %{HTTP:Authorization} ^(.*)
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%1]
+
+<IfModule mod_headers.c>
+    Header set Cross-Origin-Resource-Policy "same-origin"
+</IfModule>
+
+<FilesMatch "^(config|db)\.php$">
+    # These are includes, not endpoints.
+    Require all denied
+</FilesMatch>

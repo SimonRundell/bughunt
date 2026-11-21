@@ -1,0 +1,267 @@
+{
+  "tracks": [
+    {
+      "slug": "spot-the-typo",
+      "title": "Spot the Typo",
+      "summary": "Syntax errors: the code won't even run yet.",
+      "intro_md": "Every puzzle here fails before it even starts. You'll learn to read `SyntaxError` and `IndentationError` messages and fix the shape of the code, not its logic.",
+      "bug_focus": "syntax",
+      "assist_level": "none",
+      "sort_order": 1,
+      "status": "published"
+    },
+    {
+      "slug": "crash-course",
+      "title": "Crash Course",
+      "summary": "Runtime errors: the code runs, then crashes partway through.",
+      "intro_md": "These puzzles run until something goes wrong. You'll learn to read a traceback from the bottom up and recognise what each exception type is telling you.",
+      "bug_focus": "runtime",
+      "assist_level": "basic",
+      "sort_order": 2,
+      "status": "published"
+    },
+    {
+      "slug": "wrong-answer",
+      "title": "Wrong Answer",
+      "summary": "The code runs fine and gives you a confidently wrong answer.",
+      "intro_md": "No errors here - just the wrong result. You'll compare expected vs actual output and get used to checking boundary values by hand.",
+      "bug_focus": "logic",
+      "assist_level": "full",
+      "sort_order": 3,
+      "status": "published"
+    },
+    {
+      "slug": "deep-bugs",
+      "title": "Deep Bugs",
+      "summary": "Subtler logic bugs that need a trace table to really see.",
+      "intro_md": "These bugs hide in state, scope and recursion. You'll use trace tables and variable watch to see what's really happening, step by step.",
+      "bug_focus": "logic",
+      "assist_level": "full",
+      "sort_order": 4,
+      "status": "published"
+    },
+    {
+      "slug": "boss-fights",
+      "title": "Boss Fights",
+      "summary": "Bigger programs with more than one bug hiding in them.",
+      "intro_md": "Multiple bugs, longer code. You'll divide and conquer, build minimal examples, and work the full debugging loop end to end.",
+      "bug_focus": "mixed",
+      "assist_level": "full",
+      "sort_order": 5,
+      "status": "published"
+    }
+  ],
+  "concepts": [
+    {
+      "slug": "block-syntax",
+      "title": "Colons and blocks",
+      "summary": "Every block header (if, for, while, def, class...) ends in a colon.",
+      "lesson_md": "## What it is\n\nAny line that starts an indented block - `if`, `elif`, `else`, `for`, `while`, `def`, `class`, `try`, `except` - must end with a colon `:`.\n\n## What it looks like when it goes wrong\n\n```\nSyntaxError: expected ':'\n```\n\nPython points at the end of the line that's missing it.\n\n## How to spot it\n\nScan every line that should open a block. Does it end in `:`? It's an easy thing to miss because the line still *looks* finished without one.\n\n## How to fix it\n\nAdd the colon at the end of the header line, before the indented block starts.\n\n## Try it\n\n```python run\nfor i in range(3):\n    print(i)\n```"
+    },
+    {
+      "slug": "names-and-scope",
+      "title": "Names and scope",
+      "summary": "Python only knows a name once something has assigned it, spelled exactly.",
+      "lesson_md": "## What it is\n\nA name (variable, function, parameter) only exists once it's been created, and Python matches names exactly, including capitalisation.\n\n## What it looks like when it goes wrong\n\n```\nNameError: name 'nmae' is not defined\n```\n\n## How to spot it\n\nCompare the name in the error to every place that name is created or passed in - letter by letter.\n\n## How to fix it\n\nFix the spelling (or capitalisation) so it matches exactly everywhere it's used.\n\n## Try it\n\n```python run\nname = \"Ada\"\nprint(\"Hello, \" + name)\n```"
+    },
+    {
+      "slug": "off-by-one",
+      "title": "Off-by-one errors",
+      "summary": "Loops and ranges that stop one step too early or too late.",
+      "lesson_md": "## What it is\n\nA loop, range or boundary check that's out by exactly one - the most common logic bug in programming.\n\n## What it looks like when it goes wrong\n\nNo error at all - just a result that's slightly wrong, often missing the first or last item.\n\n## How to spot it\n\nTest with the smallest possible input by hand (n = 1, or an empty list) and check the first and last values a loop actually touches.\n\n## How to fix it\n\nAdjust the range, the comparison operator (< vs <=), or the starting value so the boundary is included (or excluded) correctly.\n\n## Try it\n\n```python run\nfor i in range(1, 5):\n    print(i)\n```"
+    },
+    {
+      "slug": "range-function",
+      "title": "How range() works",
+      "summary": "range(a, b) includes a but stops before b.",
+      "lesson_md": "## What it is\n\n`range(a, b)` produces `a, a+1, ..., b-1` - it always stops one short of `b`.\n\n## What it looks like when it goes wrong\n\nA loop that should include the last number doesn't, because `range(1, n)` stops at `n - 1`.\n\n## How to spot it\n\nPrint out `list(range(a, b))` for small numbers and check what's actually in it.\n\n## How to fix it\n\nUse `range(a, b + 1)` when you need `b` included.\n\n## Try it\n\n```python run\nprint(list(range(1, 5)))\nprint(list(range(1, 6)))\n```"
+    },
+    {
+      "slug": "recursion",
+      "title": "Recursion and base cases",
+      "summary": "Every recursive function needs a condition where it stops calling itself.",
+      "lesson_md": "## What it is\n\nA recursive function calls itself with a smaller version of the problem, until a base case stops the chain.\n\n## What it looks like when it goes wrong\n\n```\nRecursionError: maximum recursion depth exceeded\n```\n\n## How to spot it\n\nCheck the function for a condition that returns *without* calling itself again - and check every recursive call actually moves towards that condition.\n\n## How to fix it\n\nAdd the missing base case, or fix the recursive call so it genuinely gets closer to it each time.\n\n## Try it\n\n```python run\ndef count_down(n):\n    if n <= 0:\n        print(\"Done!\")\n        return\n    print(n)\n    count_down(n - 1)\n\ncount_down(3)\n```"
+    },
+    {
+      "slug": "zero-division-and-guards",
+      "title": "Dividing by zero (and guarding against it)",
+      "summary": "Check a count isn't zero before you divide by it.",
+      "lesson_md": "## What it is\n\nDividing (or using %) by zero always crashes in Python, so any value you divide by needs to be checked first if it could be zero.\n\n## What it looks like when it goes wrong\n\n```\nZeroDivisionError: division by zero\n```\n\n## How to spot it\n\nLook at what's on the right of `/` or `%` - could it ever be zero? An empty list's length is the classic case.\n\n## How to fix it\n\nAdd a guard: check the value before dividing, and decide what should happen in that empty case instead of crashing.\n\n## Try it\n\n```python run\nscores = []\nif len(scores) == 0:\n    print(\"No scores yet\")\nelse:\n    print(sum(scores) / len(scores))\n```"
+    }
+  ],
+  "puzzles": [
+    {
+      "slug": "colon-needed",
+      "track": "spot-the-typo",
+      "title": "Colon Needed",
+      "difficulty": 1,
+      "bug_type": "syntax",
+      "entry_mode": "function",
+      "entry_name": "is_even",
+      "brief_md": "`is_even(n)` should return `True` if `n` is even, and `False` otherwise.\n\nExample: `is_even(4)` should return `True`. `is_even(7)` should return `False`.",
+      "buggy_code": "def is_even(n)\n    return n % 2 == 0\n",
+      "fixed_code": "def is_even(n):\n    return n % 2 == 0\n",
+      "tests": [
+        { "label": "is_even(4)", "args_py": "(4,)", "expect_kind": "returns", "expect_py": "True", "hidden": false },
+        { "label": "is_even(7)", "args_py": "(7,)", "expect_kind": "returns", "expect_py": "False", "hidden": false },
+        { "label": "is_even(0)", "args_py": "(0,)", "expect_kind": "returns", "expect_py": "True", "hidden": true },
+        { "label": "is_even(-3)", "args_py": "(-3,)", "expect_kind": "returns", "expect_py": "False", "hidden": true }
+      ],
+      "hints": [
+        { "tier": 1, "hint_md": "This code won't even run yet - look at the error message before you think about logic at all." },
+        { "tier": 2, "hint_md": "Look closely at the `def` line. Every line that opens a block needs something specific at the end." },
+        { "tier": 3, "hint_md": "Add a colon `:` at the end of the `def is_even(n)` line." }
+      ],
+      "bugs": [
+        {
+          "line_start": 1, "line_end": 1, "bug_type": "syntax", "concept": "block-syntax",
+          "what_md": "The `def` line has no colon, so Python can't tell where the function's body is supposed to start.",
+          "fix_md": "Add `:` after the closing parenthesis: `def is_even(n):`."
+        }
+      ],
+      "concepts": ["block-syntax"],
+      "explanation_md": "Every block header in Python - `def`, `if`, `for`, `while`, `class`, and the rest - ends with a colon. Without it, Python's parser doesn't know an indented block is coming next, and it fails before running a single line of your code.",
+      "spot_it_md": "Before you run anything, scan every line that should open a block and check it ends in `:`."
+    },
+    {
+      "slug": "mystery-name",
+      "track": "crash-course",
+      "title": "Mystery Name",
+      "difficulty": 1,
+      "bug_type": "runtime",
+      "entry_mode": "function",
+      "entry_name": "greet",
+      "brief_md": "`greet(name)` should return a greeting like `\"Hello, Ada!\"`.\n\nExample: `greet(\"Ada\")` should return `\"Hello, Ada!\"`.",
+      "buggy_code": "def greet(name):\n    message = \"Hello, \" + nmae + \"!\"\n    return message\n",
+      "fixed_code": "def greet(name):\n    message = \"Hello, \" + name + \"!\"\n    return message\n",
+      "tests": [
+        { "label": "greet(\"Ada\")", "args_py": "('Ada',)", "expect_kind": "returns", "expect_py": "'Hello, Ada!'", "hidden": false },
+        { "label": "greet(\"Bo\")", "args_py": "('Bo',)", "expect_kind": "returns", "expect_py": "'Hello, Bo!'", "hidden": false },
+        { "label": "greet(\"\")", "args_py": "('',)", "expect_kind": "returns", "expect_py": "'Hello, !'", "hidden": true },
+        { "label": "greet(\"Sam\")", "args_py": "('Sam',)", "expect_kind": "returns", "expect_py": "'Hello, Sam!'", "hidden": true }
+      ],
+      "hints": [
+        { "tier": 1, "hint_md": "The code runs and then crashes - that's a `NameError`. Read the traceback's last line first." },
+        { "tier": 2, "hint_md": "Look at the variable used inside the message. Compare its spelling to the function's parameter." },
+        { "tier": 3, "hint_md": "`nmae` should be `name` - fix the typo so it matches the parameter exactly." }
+      ],
+      "bugs": [
+        {
+          "line_start": 2, "line_end": 2, "bug_type": "runtime", "concept": "names-and-scope",
+          "what_md": "`nmae` is never defined - it's a typo for the parameter `name`, so Python raises a `NameError` the moment this line runs.",
+          "fix_md": "Change `nmae` to `name`."
+        }
+      ],
+      "concepts": ["names-and-scope"],
+      "explanation_md": "Python only recognises a name once it's been created - it doesn't guess what you meant. A typo in a variable name looks right to the eye but is a completely different, undefined name to Python, so it crashes as soon as that line runs.",
+      "spot_it_md": "When you see a `NameError`, compare the named variable letter-by-letter against where it was created."
+    },
+    {
+      "slug": "sum-to-n-off-by-one",
+      "track": "wrong-answer",
+      "title": "The Missing Number",
+      "difficulty": 2,
+      "bug_type": "logic",
+      "entry_mode": "function",
+      "entry_name": "sum_to",
+      "brief_md": "`sum_to(n)` should return the sum of all whole numbers from 1 up to and including `n`.\n\nExample: `sum_to(4)` should return `10` (1 + 2 + 3 + 4).",
+      "buggy_code": "def sum_to(n):\n    total = 0\n    for i in range(1, n):\n        total += i\n    return total\n",
+      "fixed_code": "def sum_to(n):\n    total = 0\n    for i in range(1, n + 1):\n        total += i\n    return total\n",
+      "predict_prompt_md": "What do you think `sum_to(4)` returns? Write it down before you run anything.",
+      "tests": [
+        { "label": "sum_to(4)", "args_py": "(4,)", "expect_kind": "returns", "expect_py": "10", "hidden": false },
+        { "label": "sum_to(1)", "args_py": "(1,)", "expect_kind": "returns", "expect_py": "1", "hidden": false },
+        { "label": "sum_to(0)", "args_py": "(0,)", "expect_kind": "returns", "expect_py": "0", "hidden": true },
+        { "label": "sum_to(100)", "args_py": "(100,)", "expect_kind": "returns", "expect_py": "5050", "hidden": true }
+      ],
+      "hints": [
+        { "tier": 1, "hint_md": "The code runs without errors, so this is a logic bug. Compare your result for `sum_to(4)` with 10." },
+        { "tier": 2, "hint_md": "Look at the `range()` call. Which numbers does `range(1, n)` actually produce?" },
+        { "tier": 3, "hint_md": "`range` stops one short of its second value. You need the loop to reach `n` itself." }
+      ],
+      "bugs": [
+        {
+          "line_start": 3, "line_end": 3, "bug_type": "logic", "concept": "off-by-one",
+          "what_md": "`range(1, n)` stops at `n - 1`, so `n` is never added.",
+          "fix_md": "Use `range(1, n + 1)`."
+        }
+      ],
+      "concepts": ["off-by-one", "range-function"],
+      "explanation_md": "Python's `range(a, b)` includes `a` but excludes `b` - it's a deliberate design choice that trips almost everyone up at least once. Whenever a loop should include the upper value, add one to the second argument.",
+      "spot_it_md": "Any time you loop with `range`, check the first and last values by hand with a tiny input like `n = 1` or `n = 2`."
+    },
+    {
+      "slug": "infinite-descent",
+      "track": "deep-bugs",
+      "title": "Infinite Descent",
+      "difficulty": 3,
+      "bug_type": "runtime",
+      "entry_mode": "function",
+      "entry_name": "factorial",
+      "brief_md": "`factorial(n)` should return `n!` (n factorial): `n * (n-1) * (n-2) * ... * 1`.\n\nExample: `factorial(5)` should return `120`. By definition, `factorial(0)` and `factorial(1)` both return `1`.",
+      "buggy_code": "def factorial(n):\n    return n * factorial(n - 1)\n",
+      "fixed_code": "def factorial(n):\n    if n <= 1:\n        return 1\n    return n * factorial(n - 1)\n",
+      "predict_prompt_md": "What do you think happens when you run `factorial(5)`? Will it finish? Write down what you expect before you run it.",
+      "tests": [
+        { "label": "factorial(5)", "args_py": "(5,)", "expect_kind": "returns", "expect_py": "120", "hidden": false },
+        { "label": "factorial(3)", "args_py": "(3,)", "expect_kind": "returns", "expect_py": "6", "hidden": false },
+        { "label": "factorial(1)", "args_py": "(1,)", "expect_kind": "returns", "expect_py": "1", "hidden": true },
+        { "label": "factorial(0)", "args_py": "(0,)", "expect_kind": "returns", "expect_py": "1", "hidden": true }
+      ],
+      "hints": [
+        { "tier": 1, "hint_md": "This one crashes with a `RecursionError` - the function keeps calling itself and never stops." },
+        { "tier": 2, "hint_md": "Every recursive function needs a condition where it stops calling itself. Does this one have one?" },
+        { "tier": 3, "hint_md": "Add a base case: if `n <= 1`, return `1` directly, before the recursive call." }
+      ],
+      "bugs": [
+        {
+          "line_start": 1, "line_end": 2, "bug_type": "runtime", "concept": "recursion",
+          "what_md": "There's no base case, so `factorial` keeps calling itself with a smaller `n` forever, until Python's recursion limit is hit.",
+          "fix_md": "Add `if n <= 1: return 1` before the recursive call."
+        }
+      ],
+      "concepts": ["recursion"],
+      "explanation_md": "Recursive functions need two things: a base case that returns without recursing, and a recursive case that's guaranteed to move closer to that base case. This function only has the recursive case, so it never stops - it just keeps calling itself with smaller and smaller numbers until Python gives up.",
+      "spot_it_md": "Whenever you write a recursive function, write the base case first and check the recursive call actually moves towards it."
+    },
+    {
+      "slug": "grade-calculator",
+      "track": "boss-fights",
+      "title": "Grade Calculator",
+      "difficulty": 4,
+      "bug_type": "mixed",
+      "entry_mode": "function",
+      "entry_name": "calculate_grade",
+      "brief_md": "`calculate_grade(scores)` takes a list of test scores (0-100) and returns a grade:\n\n- `\"Distinction\"` if the average is 70 or above\n- `\"Pass\"` if the average is 50 or above (but below 70)\n- `\"Fail\"` otherwise\n- `\"No scores\"` if the list is empty\n\nExample: `calculate_grade([85, 90, 95])` should return `\"Distinction\"`.",
+      "buggy_code": "def calculate_grade(scores):\n    total = 0\n    for score in scores:\n        total = total + score\n    average = total / len(scores)\n    if average > 70:\n        return \"Distinction\"\n    elif average > 50:\n        return \"Pass\"\n    else:\n        return \"Fail\"\n",
+      "fixed_code": "def calculate_grade(scores):\n    if len(scores) == 0:\n        return \"No scores\"\n    total = 0\n    for score in scores:\n        total = total + score\n    average = total / len(scores)\n    if average >= 70:\n        return \"Distinction\"\n    elif average >= 50:\n        return \"Pass\"\n    else:\n        return \"Fail\"\n",
+      "tests": [
+        { "label": "calculate_grade([85, 90, 95])", "args_py": "([85, 90, 95],)", "expect_kind": "returns", "expect_py": "'Distinction'", "hidden": false },
+        { "label": "calculate_grade([70, 70, 70]) - exactly on the Distinction boundary", "args_py": "([70, 70, 70],)", "expect_kind": "returns", "expect_py": "'Distinction'", "hidden": false },
+        { "label": "calculate_grade([50, 50, 50]) - exactly on the Pass boundary", "args_py": "([50, 50, 50],)", "expect_kind": "returns", "expect_py": "'Pass'", "hidden": false },
+        { "label": "calculate_grade([]) - no scores at all", "args_py": "([],)", "expect_kind": "returns", "expect_py": "'No scores'", "hidden": true },
+        { "label": "calculate_grade([30, 40])", "args_py": "([30, 40],)", "expect_kind": "returns", "expect_py": "'Fail'", "hidden": true }
+      ],
+      "hints": [
+        { "tier": 1, "hint_md": "Try scores that land exactly on 50 or 70, and try an empty list - does the brief's boundary wording match what the code actually does?" },
+        { "tier": 2, "hint_md": "There are two separate problems here: what happens with no scores at all, and what happens exactly on a grade boundary." },
+        { "tier": 3, "hint_md": "Guard against an empty list before dividing, and use `>=` instead of `>` so a score exactly on the boundary gets the higher grade." }
+      ],
+      "bugs": [
+        {
+          "line_start": 5, "line_end": 5, "bug_type": "runtime", "concept": "zero-division-and-guards",
+          "what_md": "If `scores` is empty, `len(scores)` is `0` and dividing by it crashes with a `ZeroDivisionError`.",
+          "fix_md": "Check for an empty list first and return `\"No scores\"` before dividing."
+        },
+        {
+          "line_start": 6, "line_end": 9, "bug_type": "logic",
+          "what_md": "Using `>` instead of `>=` means a score landing exactly on a boundary (70 or 50) is marked down a grade.",
+          "fix_md": "Change both comparisons to `>=` so the boundary itself counts for the higher grade."
+        }
+      ],
+      "concepts": ["zero-division-and-guards"],
+      "explanation_md": "Two separate bugs here. First, dividing by `len(scores)` crashes on an empty list because there's no guard for that case. Second, `>` silently excludes the boundary value itself - the brief says \"70 or above\", which means `>=`, not `>`. Neither bug stops the other from being tested, so fixing one doesn't reveal the other automatically - you need to check both the empty case and the exact boundaries.",
+      "spot_it_md": "For any function with thresholds, test the exact boundary values by hand, and always ask what happens with an empty or missing input."
+    }
+  ]
+}

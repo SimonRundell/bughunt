@@ -1,0 +1,13 @@
+{
+  "db": { "host": "127.0.0.1", "port": 3306, "name": "bughunt", "user": "root", "pass": "" },
+  "app": {
+    "title": "BugHunt",
+    "pyodideVersion": "314.0.8",
+    "runTimeoutMs": 5000,
+    "maxOutputChars": 20000,
+    "maxCodeBytes": 20480,
+    "allowedImports": ["math", "random", "string", "collections", "itertools", "functools", "datetime", "statistics", "re", "json"],
+    "scoring": {}
+  },
+  "auth": { "tokenTtlHours": 8, "maxLoginAttemptsPer15Min": 8 }
+}

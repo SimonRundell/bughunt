@@ -2,16 +2,20 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { loadProgress, PROGRESS_CHANGED_EVENT } from '../store/progress'
 import XpBar from './XpBar'
+import SettingsPanel from './SettingsPanel'
 
 /**
  * Persistent brand bar shown on every page: logo, title (links back to
- * `/`), top-level nav (Debug/Playground/Concepts/Progress/Admin) and the XP bar.
- * Mounted once in App.jsx rather than per-page, so its XP figure re-reads
- * progress on `PROGRESS_CHANGED_EVENT` (dispatched by `saveProgress`)
- * instead of going stale between page navigations.
+ * `/`), top-level nav (Debug/Playground/Concepts/Progress/Admin), the XP
+ * bar, and a Settings toggle (BUILD.md 9.2 places Settings in this same
+ * header, alongside the XP bar and rank). Mounted once in App.jsx rather
+ * than per-page, so its XP figure re-reads progress on
+ * `PROGRESS_CHANGED_EVENT` (dispatched by `saveProgress`) instead of
+ * going stale between page navigations.
  */
 export default function SiteHeader() {
   const [progress, setProgress] = useState(() => loadProgress())
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   useEffect(() => {
     const onProgressChanged = () => setProgress(loadProgress())
@@ -43,6 +47,10 @@ export default function SiteHeader() {
         </NavLink>
       </nav>
       <XpBar xp={progress.xp} />
+      <button type="button" className="btn btn--small site-header__settings-toggle" onClick={() => setSettingsOpen((open) => !open)}>
+        Settings
+      </button>
+      {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
     </header>
   )
 }

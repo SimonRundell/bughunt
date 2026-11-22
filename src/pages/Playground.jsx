@@ -5,6 +5,8 @@ import Console from '../components/Console'
 import ErrorExplainer from '../components/ErrorExplainer'
 import harnessSource from '../python/harness.py?raw'
 import { init, interrupt, isInteractiveInputSupported, run, submitStdinLine } from '../python/runner'
+import { useSettings } from '../hooks/useSettings'
+import { fontFamilyStack } from '../store/settings'
 
 const STARTER_CODE = `print("Hello from Python!")
 name = input("What's your name? ")
@@ -25,6 +27,7 @@ export default function Playground() {
   const [appConfig, setAppConfig] = useState(null)
   const editorRef = useRef(null)
   const interactiveInput = isInteractiveInputSupported()
+  const settings = useSettings()
 
   useEffect(() => {
     client.get('/public-config.php').then((res) => setAppConfig(res.data.data))
@@ -97,7 +100,14 @@ export default function Playground() {
   return (
     <div className="playground">
       <div className="playground__editor">
-        <CodeEditor ref={editorRef} value={code} onChange={setCode} />
+        <CodeEditor
+          ref={editorRef}
+          value={code}
+          onChange={setCode}
+          fontSize={settings.editorFontSize}
+          fontFamily={fontFamilyStack(settings.editorFontFamily)}
+          lineNumbers={settings.showLineNumbers}
+        />
       </div>
       <div className="playground__side">
         <div className="playground__toolbar">
@@ -114,6 +124,10 @@ export default function Playground() {
             {status === 'ready' && 'Ready'}
           </span>
         </div>
+
+        <p className="editor-a11y-hint">
+          Keyboard: Tab indents inside the editor. Press Ctrl+M (Ctrl+Shift+M on Mac) to make Tab move focus out instead.
+        </p>
 
         {!interactiveInput && (
           <div className="playground__inputs">

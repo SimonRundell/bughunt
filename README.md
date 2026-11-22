@@ -1,6 +1,6 @@
 # BugHunt
 
-A browser-based Python debugging game for post-16 students. Python runs
+A browser-based Python debugging game for post-16 students such as those studying Level 2 Foundation, T-Level, GCSE, A-Level and BTec. Python runs
 client-side in a Web Worker via Pyodide; a PHP/MySQL backend serves and
 stores puzzles. See `BUILD.md` for the full brief, decisions and build
 order.

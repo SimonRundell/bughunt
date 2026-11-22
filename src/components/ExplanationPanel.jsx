@@ -4,6 +4,8 @@ import { DiffEditor } from '@monaco-editor/react'
 import ReactMarkdown from 'react-markdown'
 import { setupMonaco } from '../editor/monacoSetup'
 import { getConceptTitleMap } from '../api/puzzles'
+import { useSettings } from '../hooks/useSettings'
+import { fontFamilyStack } from '../store/settings'
 
 setupMonaco()
 
@@ -24,6 +26,7 @@ setupMonaco()
 export default function ExplanationPanel({ solution, studentCode, xpAwarded, gaveUp, concepts = [] }) {
   const modifiedEditorRef = useRef(null)
   const [conceptTitles, setConceptTitles] = useState(new Map())
+  const settings = useSettings()
 
   useEffect(() => {
     getConceptTitleMap().then(setConceptTitles)
@@ -92,7 +95,9 @@ export default function ExplanationPanel({ solution, studentCode, xpAwarded, gav
           options={{
             readOnly: true,
             renderSideBySide: true,
-            fontFamily: "'Courier New', monospace",
+            fontFamily: fontFamilyStack(settings.editorFontFamily),
+            fontSize: settings.editorFontSize,
+            lineNumbers: settings.showLineNumbers ? 'on' : 'off',
             minimap: { enabled: false },
             automaticLayout: true,
           }}

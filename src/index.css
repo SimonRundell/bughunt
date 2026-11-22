@@ -87,6 +87,7 @@ a {
 }
 
 .site-header {
+  position: relative;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -141,6 +142,81 @@ a {
   min-width: 180px;
 }
 
+.settings-panel {
+  position: absolute;
+  top: 100%;
+  right: var(--space-4);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: min(320px, calc(100vw - var(--space-4) * 2));
+  margin-top: var(--space-2);
+  padding: var(--space-4);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.4);
+}
+
+.settings-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.settings-panel__head h2 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.settings-panel__row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.settings-panel__row select,
+.settings-panel__row input[type='number'] {
+  min-height: 44px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-2);
+}
+
+.settings-panel__row--checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+}
+
+.settings-panel__row--checkbox input {
+  width: 20px;
+  height: 20px;
+}
+
+.settings-panel__hint {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.site-footer {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-4);
+}
+
+.site-footer a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+}
+
 @media (max-width: 599px) {
   .site-header .xp-bar {
     margin-left: 0;
@@ -158,6 +234,18 @@ a {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Settings' "always reduce motion" override - same rule, triggered by a
+   root attribute instead of the OS media query, for a student whose OS
+   default doesn't match what they want in just this app. */
+:root[data-reduce-motion='true'] *,
+:root[data-reduce-motion='true'] *::before,
+:root[data-reduce-motion='true'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
 }
 
 /* ---------- Buttons ---------- */
@@ -839,6 +927,17 @@ a {
   color: var(--text-muted);
 }
 
+/* BUILD.md 11: "Document the editor focus escape key" - Monaco traps Tab
+   by default (it indents); Ctrl+M toggles that off. Shown plainly rather
+   than only in README, since a keyboard-only student needs to discover
+   it without leaving the page. */
+.editor-a11y-hint {
+  margin: 0;
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
 .puzzle__diagnose-picker {
   display: flex;
   flex-wrap: wrap;
@@ -1316,9 +1415,17 @@ a {
 }
 
 .admin-checkbox {
+  display: flex;
   flex-direction: row !important;
   align-items: center;
   gap: var(--space-2) !important;
+  min-height: 44px;
+}
+
+.admin-checkbox input[type='checkbox'] {
+  width: 20px;
+  height: 20px;
+  min-height: 0;
 }
 
 .admin-code-pane {

@@ -4,6 +4,8 @@ import Console from './Console'
 import ErrorExplainer from './ErrorExplainer'
 import harnessSource from '../python/harness.py?raw'
 import { init, isInteractiveInputSupported, run, submitStdinLine } from '../python/runner'
+import { useSettings } from '../hooks/useSettings'
+import { fontFamilyStack } from '../store/settings'
 
 /**
  * Compact runnable snippet (BUILD.md 3.3's concept-card "Try it"): a small
@@ -25,6 +27,7 @@ export default function SnippetRunner({ initialCode, timeoutMs = 5000, maxOutput
   const [awaitingInput, setAwaitingInput] = useState(false)
   const editorRef = useRef(null)
   const interactiveInput = isInteractiveInputSupported()
+  const settings = useSettings()
 
   useEffect(() => {
     init({ pyodideUrl: '/pyodide/', harnessSource }).then(() => setStatus('ready'))
@@ -84,7 +87,14 @@ export default function SnippetRunner({ initialCode, timeoutMs = 5000, maxOutput
   return (
     <div className="snippet-runner">
       <div className="snippet-runner__editor">
-        <CodeEditor ref={editorRef} value={code} onChange={setCode} fontSize={14} />
+        <CodeEditor
+          ref={editorRef}
+          value={code}
+          onChange={setCode}
+          fontSize={settings.editorFontSize}
+          fontFamily={fontFamilyStack(settings.editorFontFamily)}
+          lineNumbers={settings.showLineNumbers}
+        />
       </div>
       <div className="snippet-runner__toolbar">
         <button type="button" className="btn btn--primary btn--small" onClick={handleRun} disabled={status !== 'ready'}>

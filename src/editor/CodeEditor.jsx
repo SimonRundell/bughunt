@@ -14,10 +14,12 @@ setupMonaco()
  * @param {string} props.value
  * @param {(value: string) => void} props.onChange
  * @param {number} [props.fontSize]
+ * @param {string} [props.fontFamily] - CSS font-family stack; Settings' dyslexia-friendly option swaps this
+ * @param {boolean} [props.lineNumbers] - defaults to shown, per Settings' "show line numbers" toggle
  * @param {'vs'|'vs-dark'} [props.theme] - defaults to the app's dark-only look
  */
 const CodeEditor = forwardRef(function CodeEditor(
-  { value, onChange, fontSize = 15, theme = 'vs-dark' },
+  { value, onChange, fontSize = 15, fontFamily = "'Courier New', monospace", lineNumbers = true, theme = 'vs-dark' },
   ref,
 ) {
   const editorRef = useRef(null)
@@ -107,8 +109,9 @@ const CodeEditor = forwardRef(function CodeEditor(
           }, 100)
         }}
         options={{
-          fontFamily: "'Courier New', monospace",
+          fontFamily,
           fontSize,
+          lineNumbers: lineNumbers ? 'on' : 'off',
           minimap: { enabled: false },
           scrollBeyondLastLine: false,
           automaticLayout: true,

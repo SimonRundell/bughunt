@@ -5,7 +5,7 @@ built, what's verified, and what's still open, so work can be picked up
 without re-deriving context. Updated at the end of each phase (and
 mid-phase when something notable changes).
 
-## Status: Phase 4 done (deeper teaching features), Phase 5 not started
+## Status: Phase 5 done (content, accessibility, release prep), except Hostinger deploy (deferred)
 
 Last verified: 2026-11-22, against the live dev server (`npm run dev`,
 Vite on :5173) and Laragon's Apache/PHP (:80) + MariaDB (:3306).
@@ -762,3 +762,155 @@ Per BUILD.md 13: the Appendix A seed curriculum is already fully built
 (Phase 3), so this phase is mainly the accessibility pass against
 section 11, a settings panel and themes, README/About page/
 THIRD_PARTY.md/deploy notes, and the Hostinger deploy check (10.4).
+
+## Phase 5 (Content, accessibility, release) - done except Hostinger deploy, browser-verified
+
+Four decisions confirmed with Simon before starting, since this phase's
+BUILD.md spec conflicts with or extends earlier calls: **stay dark-only**
+(BUILD.md's three-theme spec was explicitly dropped back in Phase 2 -
+the Settings panel still gets font size/choice, line numbers and a
+reduce-motion override, just no theme switcher); **bundle OpenDyslexic**
+properly (not a plainer system-font substitute); **skip Hostinger deploy
+prep this round** (no hosting credentials, and a live deploy to Simon's
+real account needs his own hands regardless); **build everything else in
+one pass**, one combined smoke test at the end, matching Phases 3/4.
+
+### What's built
+
+- **Settings panel** (`SettingsPanel.jsx`, `useSettings()` hook,
+  `store/settings.js` extended with a `SETTINGS_CHANGED_EVENT` mirroring
+  `progress.js`'s pattern): editor font size, a Courier New/OpenDyslexic
+  font choice, show/hide line numbers, and an "always reduce motion"
+  override on top of the existing `prefers-reduced-motion` media query.
+  Opens from a new Settings button in `SiteHeader`, next to the XP bar
+  (matching BUILD.md 9.2's layout). `createDefaultSettings()` dropped the
+  `theme` field entirely rather than keep a dead, unused setting.
+  OpenDyslexic is bundled via `@fontsource/opendyslexic` (self-hosted
+  woff2/woff, OFL-1.1 licence) - satisfies "no fonts loaded from external
+  hosts" the same way the rest of the app already does. Wired into every
+  `CodeEditor`/`DiffEditor` instance in the app (Playground, Puzzle,
+  SnippetRunner, ExplanationPanel's diff) via `fontFamilyStack()`, not
+  just one of them.
+- **Accessibility pass against BUILD.md 11**: verified clean at both
+  320px width and a genuine 200% zoom equivalent (real viewport resize,
+  not the non-standard CSS `zoom` property - see bugs below), keyboard-
+  only structural audit (every interactive element added since Phase 2
+  is a real `<button>`/`<select>`/`<input>`, nothing click-only on a
+  `<div>`), no `outline: none` without a replacement anywhere in
+  `index.css`, and Monaco's real Tab-focus-escape keybinding (`Ctrl+M` /
+  `Ctrl+Shift+M` on Mac - confirmed from the installed Monaco version's
+  own source, not guessed) is now documented both in-app (a persistent
+  hint under the editor toolbar on Playground and the puzzle page) and
+  in this log.
+- **About page** (`/about`): how it works, the required privacy
+  statement (no accounts/analytics/cookies/third-party scripts/external
+  fonts, `localStorage` only, code never leaves the browser), and the
+  CC BY-NC-SA licence precis with a link to the full legal text - not the
+  verbatim legal text itself, per Simon's standing instruction. Reachable
+  from a new minimal `SiteFooter` (not the top nav - About wasn't part of
+  the explicit Debug/Playground/Concepts/Progress/Admin list from the
+  earlier UX session, so it gets its own quiet footer spot instead,
+  matching BUILD.md 8's original footer-link pattern).
+- **`THIRD_PARTY.md`**: every runtime dependency with its real licence
+  (confirmed via `npm view <pkg> license`, not assumed) - React, React
+  Router, Axios, Monaco Editor, Pyodide, react-markdown,
+  @fontsource/opendyslexic, plus build tooling. Notes specifically that
+  only Pyodide's core runtime and the Python standard library are
+  loaded (matching `.config.json`'s `allowedImports`), not any of
+  Pyodide's optional scientific-package builds, so only CPython's own
+  PSF licence applies on top of Pyodide's own MPL-2.0 - no blanket credit
+  to packages the app doesn't actually load.
+- **README**: no further additions this phase (the "For Teachers"
+  section was added in the prior documentation-only session) beyond
+  what the above already covers.
+
+### Bugs found and fixed during this pass
+
+- **`.admin-checkbox` (admin puzzle editor's "Hidden" test checkbox and
+  the concept multi-select grid) had no `display: flex` of its own** -
+  it only set `flex-direction: row !important`, relying on an ancestor
+  rule (`.admin-form label` or `.admin-test-row label`) to supply
+  `display: flex` in the first place. The concept-grid checkboxes have
+  no such ancestor, so their label rendered as a plain inline/block box:
+  checkbox stacked above its text, full test-row width, instead of
+  checkbox-beside-text. Found while checking 44px touch targets, not by
+  looking at it directly - a synthetic DOM test showed a 13px-wide,
+  44px-tall checkbox (a leftover blanket `min-height: 44px` on all
+  `.admin-test-row input` stretching the checkbox vertically only).
+  Fixed by giving `.admin-checkbox` its own `display: flex` and sizing
+  the checkbox itself explicitly (20x20px) while the label row carries
+  the real 44px touch target - same pattern as the new Settings panel's
+  checkboxes.
+- **Settings panel's own checkbox rows had the identical touch-target
+  gap** (20x20px checkbox, no enforced row height) - caught immediately
+  by the same audit, fixed the same way, before it ever shipped.
+- **`200% zoom` false alarm**: testing via `document.documentElement.
+  style.zoom = '2'` showed Monaco's internal content width exploding to
+  ~33 million pixels and genuine horizontal overflow on the puzzle page.
+  Re-tested with a real viewport resize to the equivalent effective
+  width (640px, matching a 1280px screen at 200%) instead, and the page
+  was completely clean - `zoom` is non-standard and doesn't reliably
+  trigger Monaco's resize/`automaticLayout` detection the way an actual
+  browser zoom (or a real viewport resize) does. Recorded here so a
+  future check doesn't waste time chasing the same false positive.
+- **No actual bug, but worth recording**: `AdminLogin.jsx` and
+  `README.md` were found already edited (a "Cancel" button added to the
+  login form; a phrase started being added to the README's opening
+  paragraph) outside of anything this session did - left exactly as
+  found, not reverted, per the standing instruction for files edited
+  outside this conversation's own tool calls.
+
+### Verified live (interactive browser preview)
+
+- Fresh load: no console errors, `crossOriginIsolated` is `true`.
+- Hard refresh on a deep route (`/puzzle/indentation-station`) loads
+  correctly - the root `.htaccess` SPA fallback still works.
+- `/.config.json` returns 403 (confirmed via `curl`, not just assumed).
+- Settings panel: font size change, OpenDyslexic font swap (confirmed
+  the font actually loaded via `document.fonts`, not just that the CSS
+  property was set), line-numbers toggle, and the reduce-motion override
+  (confirmed it forces `animation-duration: 0.01ms` on an arbitrary test
+  element) all apply live and survive a full page reload. OpenDyslexic
+  correctly propagates into `ExplanationPanel`'s post-solve diff editor
+  too, not just the main puzzle editor.
+- Settings panel fits cleanly at 375px with no horizontal overflow.
+- 320px width: Home, Debug, Concepts, Progress and the Puzzle page all
+  load with no horizontal scroll.
+- Playground smoke-tested (print + reaching the `input()` prompt) after
+  the settings-wiring change - no regression.
+- About page renders all three sections with working links; footer
+  "About" link present on every student-facing page.
+- `npm run build` and `npx oxlint src/` both clean (same four pre-
+  existing/accepted warnings as every prior phase).
+
+### Known gaps / not fully verified
+
+- **Monaco's actual Tab-focus-escape behaviour (Ctrl+M) was confirmed
+  from source, not by actually pressing it** - this automation layer
+  can dispatch a synthetic `keydown`, but a real Tab-moves-focus browser
+  action isn't something a synthetic event can trigger or disprove (the
+  same "trusted event" limitation already noted for `:focus-visible` in
+  the Phase 2 design pass). Worth an actual keyboard check on a real
+  machine before fully signing this off.
+- **Admin login currently fails** (`spr`/the password used throughout
+  Phases 3-4 both return "Invalid username or password" now, confirmed
+  directly via `curl` against the live API, not a frontend bug) - the
+  password has changed since the last session, most likely from Simon
+  exercising the self-service change-password feature built earlier.
+  Not something this session touched or reset; flagged to Simon directly
+  rather than guessed at or silently reset again.
+- **Hostinger deploy prep deferred** at Simon's choice - BUILD.md 13's
+  Phase 5 accept criterion ("release checklist passes on Hostinger") is
+  not attempted. `root .htaccess`/`api/.htaccess` already match BUILD.md
+  10.2/10.3 from earlier phases and haven't changed this session.
+  `npm test`/Vitest: BUILD.md 14 suggests a small suite for
+  `errorDecoder.js`, `scoring.js` and the progress migration specifically
+  at the end of Phase 3 *and* Phase 5, "but do not run unprompted" -
+  still not built, offered to Simon again now that both phases have
+  passed.
+- **Editor accessibility hint** (the Ctrl+M note) was only added to
+  Playground and the main Puzzle editor, not to `SnippetRunner` (concept-
+  card "Try it" snippets) - those are small, single-use embeds rather
+  than sustained editing surfaces, and a repeated hint under every
+  concept example on a page with several would be more clutter than
+  help. Worth reconsidering if concept pages ever get denser.

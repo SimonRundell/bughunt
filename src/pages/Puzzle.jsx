@@ -16,6 +16,8 @@ import { init, interrupt, isInteractiveInputSupported, run, runTests, submitStdi
 import { getConceptTitleMap, getHint, getPuzzle, getPuzzlesForTrack, getSolution } from '../api/puzzles'
 import { computeXp, mergeScoringConfig } from '../config/scoring'
 import { getPuzzleState, loadProgress, recordGiveUp, recordSolve, saveProgress, updatePuzzleState } from '../store/progress'
+import { useSettings } from '../hooks/useSettings'
+import { fontFamilyStack } from '../store/settings'
 
 /**
  * The puzzle player (BUILD.md 9.2-9.3): brief + Debugging Loop on the
@@ -60,6 +62,7 @@ export default function Puzzle() {
   const [traceStatus, setTraceStatus] = useState('idle') // idle | running
   const editorRef = useRef(null)
   const interactiveInput = isInteractiveInputSupported()
+  const settings = useSettings()
 
   const puzzleState = puzzle ? getPuzzleState(progress, puzzle.slug) : null
   const revealedTiers = puzzleState?.hintsUsed ?? []
@@ -386,6 +389,10 @@ export default function Puzzle() {
         </span>
       </div>
 
+      <p className="editor-a11y-hint">
+        Keyboard: Tab indents inside the editor. Press Ctrl+M (Ctrl+Shift+M on Mac) to make Tab move focus out instead.
+      </p>
+
       {diagnoseDraft && (
         <div className="puzzle__diagnose-picker">
           <span>Line {diagnoseDraft.line} is:</span>
@@ -478,7 +485,14 @@ export default function Puzzle() {
         </aside>
 
         <div className="puzzle__editor">
-          <CodeEditor ref={editorRef} value={code} onChange={setCode} />
+          <CodeEditor
+            ref={editorRef}
+            value={code}
+            onChange={setCode}
+            fontSize={settings.editorFontSize}
+            fontFamily={fontFamilyStack(settings.editorFontFamily)}
+            lineNumbers={settings.showLineNumbers}
+          />
         </div>
 
         <div className="puzzle__side">

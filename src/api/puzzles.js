@@ -54,3 +54,19 @@ export async function getConcept(slug) {
   const res = await client.get('/concept.php', { params: { slug } })
   return res.data.data
 }
+
+let conceptTitleMapPromise = null
+
+/**
+ * Slug -> title lookup for rendering a concept link's text as "Block
+ * syntax" rather than a raw slug (ErrorExplainer, ExplanationPanel, the
+ * puzzle page's Concepts section all need the same mapping). Fetched
+ * once per page load and cached, not once per component.
+ * @returns {Promise<Map<string, string>>}
+ */
+export function getConceptTitleMap() {
+  if (!conceptTitleMapPromise) {
+    conceptTitleMapPromise = getConcepts().then((list) => new Map(list.map((c) => [c.slug, c.title])))
+  }
+  return conceptTitleMapPromise
+}

@@ -1,14 +1,22 @@
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { decodeError } from '../python/errorDecoder'
+import { getConceptTitleMap } from '../api/puzzles'
 
 /**
- * Plain-English breakdown of a Python error (BUILD.md 4.7). Concept cards
- * (and so a real link for `conceptSlug`) land in Phase 4 - shown as plain
- * text for now.
+ * Plain-English breakdown of a Python error (BUILD.md 4.7), linking to
+ * the matching concept card.
  *
  * @param {object} props
  * @param {{type: string, message: string, line: number|null, traceback: string}|null} props.error
  */
 export default function ErrorExplainer({ error }) {
+  const [conceptTitles, setConceptTitles] = useState(new Map())
+
+  useEffect(() => {
+    getConceptTitleMap().then(setConceptTitles)
+  }, [])
+
   if (!error) {
     return <p className="error-explainer__empty">Run some code to see errors explained here.</p>
   }
@@ -32,7 +40,9 @@ export default function ErrorExplainer({ error }) {
       </ul>
       <h4>Where to look</h4>
       <p>{decoded.whereToLook}</p>
-      <p className="error-explainer__concept">Concept: {decoded.conceptSlug}</p>
+      <p className="error-explainer__concept">
+        Concept: <Link to={`/concepts/${decoded.conceptSlug}`}>{conceptTitles.get(decoded.conceptSlug) ?? decoded.conceptSlug}</Link>
+      </p>
     </div>
   )
 }

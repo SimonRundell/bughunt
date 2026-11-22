@@ -5,10 +5,10 @@ import { setupMonaco } from './monacoSetup'
 setupMonaco()
 
 /**
- * Monaco editor configured for Python. Exposes `setMarkers(markers)` and
- * `revealLine(line)` on its ref, used by the Error Explainer and (from
- * Phase 4) the tracer to highlight lines without the parent re-rendering
- * the editor.
+ * Monaco editor configured for Python. Exposes `setMarkers(markers)`,
+ * `revealLine(line)`, `getCursorLine()` and `highlightLine(line)` on its
+ * ref, used by the Error Explainer, Diagnose and the Tracer to interact
+ * with the editor without the parent re-rendering it.
  *
  * @param {object} props
  * @param {string} props.value
@@ -24,6 +24,7 @@ const CodeEditor = forwardRef(function CodeEditor(
   const monacoRef = useRef(null)
   const containerRef = useRef(null)
   const retryIntervalRef = useRef(null)
+  const traceDecorationIds = useRef([])
 
   useImperativeHandle(ref, () => ({
     setMarkers(markers) {
@@ -34,6 +35,27 @@ const CodeEditor = forwardRef(function CodeEditor(
     },
     revealLine(line) {
       editorRef.current?.revealLineInCenter(line)
+    },
+    /** @returns {number} the line number the cursor is currently on (1-based), or 1 if the editor isn't ready yet */
+    getCursorLine() {
+      return editorRef.current?.getPosition()?.lineNumber ?? 1
+    },
+    /** @param {number|null} line - the Tracer's "current step" indicator; pass null to clear it */
+    highlightLine(line) {
+      const editor = editorRef.current
+      const monaco = monacoRef.current
+      if (!editor || !monaco) return
+      traceDecorationIds.current = editor.deltaDecorations(
+        traceDecorationIds.current,
+        line == null
+          ? []
+          : [
+              {
+                range: new monaco.Range(line, 1, line, 1),
+                options: { isWholeLine: true, className: 'bughunt-trace-line', linesDecorationsClassName: 'bughunt-trace-line-margin' },
+              },
+            ],
+      )
     },
   }))
 

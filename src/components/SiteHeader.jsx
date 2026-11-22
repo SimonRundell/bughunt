@@ -5,7 +5,7 @@ import XpBar from './XpBar'
 
 /**
  * Persistent brand bar shown on every page: logo, title (links back to
- * `/`), top-level nav (Debug/Playground/Progress/Admin) and the XP bar.
+ * `/`), top-level nav (Debug/Playground/Concepts/Progress/Admin) and the XP bar.
  * Mounted once in App.jsx rather than per-page, so its XP figure re-reads
  * progress on `PROGRESS_CHANGED_EVENT` (dispatched by `saveProgress`)
  * instead of going stale between page navigations.
@@ -31,6 +31,9 @@ export default function SiteHeader() {
         </NavLink>
         <NavLink to="/playground" className={({ isActive }) => (isActive ? 'active' : '')}>
           Playground
+        </NavLink>
+        <NavLink to="/concepts" className={({ isActive }) => (isActive ? 'active' : '')}>
+          Concepts
         </NavLink>
         <NavLink to="/progress" className={({ isActive }) => (isActive ? 'active' : '')}>
           Progress

@@ -14,6 +14,7 @@
 let pyodide = null
 let runScript = null
 let runOneTest = null
+let runTrace = null
 
 /** Int32Array over the interrupt SharedArrayBuffer, or null when unavailable. */
 let interruptArray = null
@@ -103,6 +104,7 @@ async function handleInit({ pyodideUrl, harnessSource, stdinBuffer, interruptBuf
   pyodide.runPython(harnessSource)
   runScript = pyodide.globals.get('run_script')
   runOneTest = pyodide.globals.get('run_one_test')
+  runTrace = pyodide.globals.get('run_trace')
 
   postMessage({ type: 'ready' })
 }
@@ -170,6 +172,32 @@ function handleRunTests({ code, entryMode, entryName, tests }) {
   postMessage({ type: 'testsDone' })
 }
 
+/**
+ * Traces the code once (harness.py's run_trace) and posts the full result
+ * in one message - unlike runTests, there's no per-step streaming since
+ * the scrubber/table UI needs the whole steps array before it's useful.
+ */
+function handleRunTrace({ code, entryMode, entryName, test, maxSteps }) {
+  if (interruptArray) {
+    Atomics.store(interruptArray, 0, 0)
+  }
+
+  let result
+  try {
+    const resultJson = runTrace(code, entryMode, entryName, test ? JSON.stringify(test) : null, maxSteps ?? 2000)
+    result = JSON.parse(resultJson)
+  } catch (err) {
+    result = {
+      ok: false,
+      error: { type: 'InternalError', message: String(err && err.message ? err.message : err), line: null, col: null, traceback: '' },
+      steps: [],
+      stdout: '',
+      truncated: false,
+    }
+  }
+  postMessage({ type: 'traceResult', ...result })
+}
+
 self.onmessage = (event) => {
   const msg = event.data
   switch (msg.type) {
@@ -183,6 +211,9 @@ self.onmessage = (event) => {
       break
     case 'runTests':
       handleRunTests(msg)
+      break
+    case 'runTrace':
+      handleRunTrace(msg)
       break
     case 'stdinLine':
       // Pre-typed fallback input, queued before the matching 'run'.

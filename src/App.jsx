@@ -5,6 +5,8 @@ import Track from './pages/Track'
 import Puzzle from './pages/Puzzle'
 import Progress from './pages/Progress'
 import Playground from './pages/Playground'
+import Concepts from './pages/Concepts'
+import ConceptDetail from './pages/ConceptDetail'
 import ErrorsDebug from './pages/dev/ErrorsDebug'
 import SiteHeader from './components/SiteHeader'
 import CMFloatAd from './cmFloatAd'
@@ -38,6 +40,8 @@ function App() {
         <Route path="/puzzle/:slug" element={<Puzzle />} />
         <Route path="/progress" element={<Progress />} />
         <Route path="/playground" element={<Playground />} />
+        <Route path="/concepts" element={<Concepts />} />
+        <Route path="/concepts/:slug" element={<ConceptDetail />} />
         {import.meta.env.DEV && <Route path="/dev/errors" element={<ErrorsDebug />} />}
 
         <Route path="/admin/login" element={<AdminLogin />} />

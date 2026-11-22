@@ -953,6 +953,37 @@ b = [1, 2, 3]
 print(a == b)
 print(a is b)
 ```');
+INSERT INTO bh_concepts (slug, title, summary, lesson_md) VALUES ('reading-tracebacks', 'Reading tracebacks', 'Start at the last line and work up - that names the error and shows where it happened.', '## What it is
+
+A traceback is Python''s full error report: the exception type and message at the bottom, and the chain of calls that led there above it, in the order Python followed them.
+
+## What it looks like when it goes wrong
+
+```
+Traceback (most recent call last):
+  File "<student>", line 2, in <module>
+    print(divide(10, 0))
+  File "<student>", line 1, in divide
+    return a / b
+ZeroDivisionError: division by zero
+```
+
+## How to spot it
+
+Start at the very last line - that names the exception and the message. Then look at the line just above it, which shows where in your code it actually happened. Lines further up show how execution got there (useful for recursion or nested calls), but the bottom two lines are where to look first.
+
+## How to fix it
+
+Use the exception type and message to work out what went wrong, then fix the line the traceback points to - not just the first line of the program.
+
+## Try it
+
+```python run
+def divide(a, b):
+    return a / b
+
+print(divide(10, 0))
+```');
 
 -- Puzzles, tests, hints, bugs, concept links
 INSERT INTO bh_puzzles (slug, track_id, title, sort_order, difficulty, xp, bug_type, brief_md, buggy_code, fixed_code, entry_mode, entry_name, explanation_md, spot_it_md, predict_prompt_md, status, verified_hash, verified_at) VALUES ('colon-needed', (SELECT id FROM bh_tracks WHERE slug = 'spot-the-typo'), 'Colon Needed', 1, 1, NULL, 'syntax', '`is_even(n)` should return `True` if `n` is even, and `False` otherwise.

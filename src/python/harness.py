@@ -133,6 +133,102 @@ def run_one_test(code, entry_mode, entry_name, test_json):
     return json.dumps(result, cls=_SafeEncoder)
 
 
+def run_trace(code, entry_mode, entry_name, test_json, max_steps=2000):
+    """
+    Traces execution of the student's code with sys.settrace (BUILD.md
+    4.6), recording only frames compiled from the student's own source
+    (filename "<student>") - library/harness internals are skipped. If
+    `test_json` is given, runs that one test's args/kwargs/stdin ("trace
+    this test case"); otherwise traces the code as a plain script, same
+    as run_script.
+
+    Returns a JSON string:
+    {"ok": bool, "error": {...} | null, "steps": [...], "stdout": str, "truncated": bool}
+
+    Each step: {step, event, line, depth, locals: {name: shortRepr}, stdoutLen}
+    - `stdoutLen` indexes into the returned `stdout` string, so the UI can
+      show "output so far" at any step without re-running anything.
+    - `locals` skips dunder names, modules and callables (BUILD.md: "skip
+      modules, functions and other noise").
+    - Hits `max_steps` -> stops tracing immediately and sets truncated=true,
+      rather than let a runaway loop record forever.
+    """
+    test = json.loads(test_json) if test_json else None
+    steps = []
+    state = {"truncated": False}
+    out_buf = io.StringIO()
+
+    def tracer(frame, event, arg):
+        if len(steps) >= max_steps:
+            if not state["truncated"]:
+                state["truncated"] = True
+                sys.settrace(None)
+            return None
+
+        if frame.f_code.co_filename == "<student>":
+            depth = 0
+            f = frame
+            while f is not None:
+                depth += 1
+                f = f.f_back
+
+            locals_snapshot = {}
+            for name, value in frame.f_locals.items():
+                if name.startswith("__") or callable(value) or isinstance(value, type(sys)):
+                    continue
+                try:
+                    r = repr(value)
+                except BaseException:
+                    r = "<unrepresentable>"
+                if len(r) > 80:
+                    r = r[:77] + "..."
+                locals_snapshot[name] = r
+
+            steps.append({
+                "step": len(steps),
+                "event": event,
+                "line": frame.f_lineno,
+                "depth": depth,
+                "locals": locals_snapshot,
+                "stdoutLen": out_buf.tell(),
+            })
+        return tracer
+
+    old_stdin, old_stdout, old_stderr = sys.stdin, sys.stdout, sys.stderr
+    sys.stdin = io.StringIO((test.get("stdin_text") or "") if test else "")
+    sys.stdout, sys.stderr = out_buf, out_buf
+
+    namespace_name = "__main__" if entry_mode == "script" else "student"
+    g = {"__name__": namespace_name}
+    error = None
+
+    try:
+        compiled = compile(code, "<student>", "exec")
+        sys.settrace(tracer)
+        try:
+            exec(compiled, g)
+            if test is not None and entry_mode == "function":
+                fn = g.get(entry_name)
+                if callable(fn):
+                    args = ast.literal_eval(test["args_py"]) if test.get("args_py") else ()
+                    kwargs = ast.literal_eval(test["kwargs_py"]) if test.get("kwargs_py") else {}
+                    fn(*args, **kwargs)
+        except BaseException as exc:
+            error = _describe(exc)
+    finally:
+        sys.settrace(None)
+        sys.stdin, sys.stdout, sys.stderr = old_stdin, old_stdout, old_stderr
+
+    result = {
+        "ok": error is None,
+        "error": error,
+        "steps": steps,
+        "stdout": out_buf.getvalue(),
+        "truncated": state["truncated"],
+    }
+    return json.dumps(result, cls=_SafeEncoder)
+
+
 def _try_literal(text):
     try:
         return ast.literal_eval(text)

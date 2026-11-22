@@ -207,6 +207,48 @@ export async function runTests(code, puzzle, handlers = {}, timeoutMs = 5000) {
   })
 }
 
+/**
+ * Traces `code` once with sys.settrace (harness.py's run_trace, BUILD.md
+ * 4.6). Pass `test` to trace that specific test case's args/kwargs/stdin
+ * ("trace this test case"); omit it to trace the code as a plain script,
+ * same inputs as a free Run.
+ *
+ * @param {string} code
+ * @param {object} opts
+ * @param {'function'|'script'} opts.entryMode
+ * @param {string|null} opts.entryName
+ * @param {object|null} [opts.test]
+ * @param {number} [opts.maxSteps]
+ * @param {number} [timeoutMs]
+ * @returns {Promise<{ok: boolean, error: object|null, steps: object[], stdout: string, truncated: boolean}>}
+ */
+export async function traceRun(code, { entryMode, entryName, test = null, maxSteps = 2000 } = {}, timeoutMs = 5000) {
+  await readyPromise
+
+  const triggerInterrupt = () => {
+    if (interruptArray) {
+      Atomics.store(interruptArray, 0, 2)
+    }
+  }
+
+  return new Promise((resolve) => {
+    let settled = false
+    const hardTimer = setTimeout(triggerInterrupt, timeoutMs)
+
+    const onMessage = (event) => {
+      const msg = event.data
+      if (msg.type !== 'traceResult' || settled) return
+      settled = true
+      clearTimeout(hardTimer)
+      worker.removeEventListener('message', onMessage)
+      const { type: _type, ...result } = msg
+      resolve(result)
+    }
+    worker.addEventListener('message', onMessage)
+    worker.postMessage({ type: 'runTrace', code, entryMode, entryName, test, maxSteps })
+  })
+}
+
 /** Submits one line of interactive input in response to onStdinRequest. */
 export function submitStdinLine(text) {
   if (!stdinSync) return

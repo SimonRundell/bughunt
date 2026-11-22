@@ -5,9 +5,9 @@ built, what's verified, and what's still open, so work can be picked up
 without re-deriving context. Updated at the end of each phase (and
 mid-phase when something notable changes).
 
-## Status: Phase 3 done (backend and admin), Phase 4 not started
+## Status: Phase 4 done (deeper teaching features), Phase 5 not started
 
-Last verified: 2026-11-21, against the live dev server (`npm run dev`,
+Last verified: 2026-11-22, against the live dev server (`npm run dev`,
 Vite on :5173) and Laragon's Apache/PHP (:80) + MariaDB (:3306).
 
 ## Design pass (2026-11-20) - applying CLAUDE.md's UI/UX and accessibility rules
@@ -534,12 +534,231 @@ every visit).
   fully, particularly edge cases in the puzzle editor (script-mode entry,
   `raises`/`float_tol`/`trim_stdout` test variants, concept linking).
 
-## Next: Phase 4 (Deeper teaching features)
+## Phase 4 (Deeper teaching features) - done, browser-verified
 
-Per BUILD.md 13: Tracer and the Trace tab (variable watch, trace table,
-"trace this test case"), concept cards with runnable snippets and the
-`/concepts` route (38 concept cards already exist in the database from
-this phase, just not surfaced as a browsable page yet), Diagnose
-(flag-a-line-and-pick-a-type) and the Predict-first prompt (the
-`predict_prompt_md` field already exists on puzzles and is already
-authored for several of them, just not wired into the player UI).
+Two UX changes landed just before this phase, at Simon's request:
+Home became a plain explanation of the app (what BugHunt is, the five
+tracks, the six-step debugging loop, hints/XP/badges) with the track map
+moved to its own `/debug` route, and a persistent top nav (Debug,
+Playground, Concepts, Progress, Admin) was added to `SiteHeader` between
+the title and the XP bar. `/concepts` joined that nav once this phase
+built it. Both changes are reflected in the routes/components below, not
+written up as a separate entry since they're small and this phase
+immediately builds on top of them.
+
+### What's built
+
+- **Concept cards are real pages now**: `/concepts` (list) and
+  `/concepts/:slug` (lesson + a live "Try it" snippet). Each concept's
+  `lesson_md` already ended in a ` ```python run ` fenced block (an
+  authoring convention from Phase 3, written in anticipation of this
+  phase) - `ConceptDetail.jsx` splits that block out of the rendered
+  markdown and hands it to a new **`SnippetRunner.jsx`** (a compact,
+  self-contained Monaco + Console + Error Explainer, its own `init()`
+  call so it works standalone wherever it's embedded) instead of
+  rendering it twice. Real concept links (not plain slug text) now
+  appear in `ErrorExplainer`, `ExplanationPanel` (both per-bug and for
+  the puzzle as a whole) and a new "Concepts" section in the puzzle
+  page's left column - all via a cached `getConceptTitleMap()` in
+  `src/api/puzzles.js` so the slug-to-title lookup only fetches once per
+  page load, not once per component.
+- **Diagnose** (BUILD.md 3.3): a "Flag suspect line" toolbar button
+  captures the Monaco cursor's current line (`CodeEditor.getCursorLine()`,
+  new) and opens an inline bug-type picker (syntax/runtime/logic).
+  Confirming persists `{line, type, correct: null}` to the puzzle's
+  progress state; `correct` is filled in at solve time by checking the
+  flagged line/type against `solution.bugs` (only fetched once the
+  puzzle is solved, same as the explanation panel already did - no
+  spoiler risk). A correct diagnosis feeds `computeXp`'s existing
+  `+20%` bonus (verified: difficulty-2, clean-solve-bonus-only was 22 XP,
+  with a correct diagnosis added it became 26 XP - exactly +20% of the
+  20 base). Ticks the Debugging Loop's "Locate" step, which had no
+  trigger before this phase.
+  - **Why a button, not gutter-click**: BUILD.md allows either. Gutter-
+    click is mouse-only, which would conflict with "fully keyboard
+    operable" (CLAUDE.md) unless a keyboard fallback were added too - at
+    which point it's just this button. Chose the simpler, already-
+    accessible option; flagged to Simon before building, who agreed.
+- **Predict-first**: puzzles with `predict_prompt_md` (10 of the 55,
+  mostly Track 3/4) show the prompt and a free-text prediction box
+  before the first run; after running, it's replaced with a recap
+  ("Your prediction: ... - did it match?"). Deliberately **self-
+  assessed, not auto-graded** - BUILD.md doesn't tie XP to this feature,
+  and auto-comparing freeform prediction text against actual stdout/
+  return values would be fragile (a correct-but-differently-worded
+  prediction would read as "wrong"). The habit being built is the
+  comparison itself, not a scored verdict.
+- **Tracer and the Trace tab** (BUILD.md 4.6), the biggest piece:
+  - `harness.py`'s new `run_trace(code, entry_mode, entry_name,
+    test_json, max_steps=2000)` uses `sys.settrace`, recording only
+    frames whose filename is `"<student>"` (library/harness internals
+    are skipped), each locals `repr()` truncated to 80 chars with
+    modules/callables/dunders filtered out ("noise" per BUILD.md).
+    Verified directly against Pyodide (bypassing the browser) before
+    touching any UI: a simple script, a function test case with a loop,
+    a genuine error (confirms the `exception`/`return` unwind events
+    come through correctly), and truncation at a low `max_steps` against
+    a large-but-finite loop (steps capped, `truncated: true`, execution
+    itself still runs to completion - truncation stops *recording*, not
+    the run, same as every other harness function; a *truly* infinite
+    loop still needs the worker's existing interrupt/timeout mechanism,
+    which a standalone Node test script doesn't have - learned this by
+    briefly hanging a Node process and recovering via `taskkill`, not a
+    bug in the tracer).
+  - `pyodide.worker.js`/`runner.js` gained a `runTrace()`
+    request/response pair (`type: 'runTrace'` in, `type: 'traceResult'`
+    out) - one message each way, unlike `runTests`'s per-test streaming,
+    since the Trace tab needs the whole steps array before it's useful.
+  - **`TraceView.jsx`**: a scrubber (range input, Back/Next, auto-play
+    at 700ms/step), a variable watch for the current step (changed
+    values get a `trace-flash` CSS animation - relies on the existing
+    global `prefers-reduced-motion` kill-switch rather than its own
+    check), an "Output so far" panel (slices the full captured stdout by
+    the current step's `stdoutLen`), and a trace table (one column per
+    variable seen, one row per executed line, current step's row
+    highlighted) with a "Copy table" button that writes tab-separated
+    text to the clipboard. `CodeEditor` gained `highlightLine(line)`
+    (Monaco `deltaDecorations`, mirrors the existing bug-line highlight
+    in `ExplanationPanel`) so the current trace step highlights the real
+    line in the editor the student is looking at.
+  - Toolbar "Trace" button traces the current code as a free run; a
+    "Trace this test" button appears per **visible** test in the Tests
+    tab (deliberately not offered for hidden tests - tracing one would
+    leak its exact input values through the variable watch, defeating
+    the point of hiding it).
+  - `usedTrace` (already a placeholder field in the progress store since
+    Phase 2) is now set to `true` whenever a trace completes - success
+    or error, since watching a crash is often the actual point - and
+    feeds the existing `trace-master` badge condition
+    (`bugType === 'logic' && usedTrace`) at solve time.
+- **Small fix alongside this work**: `brief_md` and `predict_prompt_md`
+  were rendering as literal text (visible backticks and all) instead of
+  parsed markdown - `Puzzle.jsx` now renders both through `ReactMarkdown`,
+  matching every other markdown field in the app.
+- **One content gap found while wiring concept links**: the error
+  decoder's fallback case (`errorDecoder.js`) pointed at a concept slug,
+  `reading-tracebacks`, that didn't exist - a generically-useful skill
+  BUILD.md names explicitly for Track 2 ("reading tracebacks bottom up")
+  but that had no card. Added it to `scripts/seed/concepts.mjs` (39th
+  concept) and inserted it into the live database with a single scoped
+  `INSERT` rather than a full reseed, since it's a pure addition with no
+  conflicting rows.
+
+### Verified live (interactive browser preview)
+
+- **Concepts**: `/concepts` lists all 39 cards; `/concepts/reading-
+  tracebacks` renders the four written sections (no duplicate code
+  block) plus a live "Try it" editor that, when run, raises a real
+  `ZeroDivisionError` and shows the Error Explainer's concept link
+  (title, not slug) - confirming the whole chain (seed convention ->
+  split ->  `SnippetRunner` -> real Pyodide run -> decoder -> concept
+  link) works end to end.
+- **Concept links elsewhere**: solving (well, giving up on, to avoid the
+  Monaco-typing-simulation problem below) "Indentation Station" showed
+  the puzzle sidebar's "Concepts" section, the Error Explainer's concept
+  link, and both the per-bug and puzzle-level concept links in the
+  post-solve/give-up explanation panel - all showing "Indentation" (the
+  real title), all linking to `/concepts/indentation`.
+- **Diagnose**: flagging line 3 on "Missing Bracket" (whose real bug is
+  line 2) opened the picker pre-filled with the captured cursor line,
+  confirming showed "Diagnosis: line 3 (syntax)", persisted across a
+  full page reload, and ticked the Debugging Loop's "Locate" step (and
+  *only* that step). The line/type-matching logic itself was verified
+  against the puzzle's real `solution.bugs` data for a right line+type,
+  right line+wrong type, and wrong line - matching BUILD.md's "correct
+  diagnosis" criterion exactly.
+- **Predict**: "The Missing Number" showed the predict prompt (with
+  working inline-code markdown) before the first run, took a typed
+  prediction, and replaced it with the recap after running tests.
+- **Tracer**: traced `sum_to(4)`'s actual test case on the buggy code -
+  the trace table correctly showed `n` staying `4`, `i` only ever
+  reaching `3`, and `total` stopping at `6` instead of `10`, which *is*
+  the off-by-one bug made visible, not just asserted. Scrubbing to a
+  specific step correctly flashed only the variable that had actually
+  changed since the previous step (verified: `i` flashed, `n`/`total`
+  didn't, at a step where that's exactly what should happen); "Copy
+  table" produced correct tab-separated text; the editor showed a real
+  `deltaDecorations` highlight on the current step's line; a free Trace
+  on a function-mode puzzle's buggy code (which only defines the
+  function, same quirk as a free Run) correctly showed a 3-step
+  define-only trace rather than erroring.
+- `usedTrace` persistence and the `trace-master` badge condition were
+  both verified directly against the real store functions (not just
+  inferred): after a real trace, `usedTrace: true` was confirmed in
+  `localStorage`, and calling `recordSolve` with that puzzle's real
+  `bugType: 'logic'` produced `['first-fix', 'trace-master']`.
+- Phase 4's BUILD.md 13 acceptance checklist: tracing a loop shows
+  correct per-step values (above), the trace table copies cleanly
+  (above), a concept snippet runs in place (above), diagnosis bonus is
+  awarded only when correct (verified both the boolean match logic and
+  the actual XP delta: +4 XP on a 20-base puzzle, exactly the
+  configured +20%).
+- `npm run build` succeeds (bundle-size warning is pre-existing, noted
+  in Phase 1); `npx oxlint src/` clean (same pre-existing warnings as
+  every prior phase, plus one new matching instance in
+  `ConceptDetail.jsx` for the same "reset state before an async
+  refetch" pattern already accepted in `Track.jsx`/`PuzzleEditor.jsx`).
+
+### Known gaps / simplifications
+
+- **Live browser verification of a full fail-then-fix-then-pass cycle
+  through Diagnose/Predict used "Give up" rather than actually typing a
+  fix into Monaco.** This automation layer can't reliably simulate real
+  keystrokes into Monaco's hidden textarea (confirmed:
+  `execCommand('insertText')` silently no-ops here) - "Give up" exercises
+  the identical `ExplanationPanel`/concept-linking code path as a real
+  solve, and the diagnosis/trace/XP *logic* was separately verified
+  directly against the real store and scoring functions rather than only
+  inferred from a UI screenshot. Worth an actual keyboard run-through on
+  a real machine before considering this fully signed off.
+- **Trace table rows cover every `'line'` event, not deduplicated
+  against the scrubber's finer-grained `'call'`/`'return'`/`'exception'`
+  steps.** This matches BUILD.md's "new row per executed line" wording
+  and reads correctly in testing, but hasn't been exercised on a
+  puzzle with actual recursion (deeper call stacks, repeated line
+  numbers at different depths) - worth a look once Deep Bugs' recursion
+  puzzles get traced in anger.
+- **No "trace from line N" window-focusing control** - BUILD.md allows
+  this alongside "trace this test case" to "focus the window" on long
+  traces. "Trace this test case" is built; jump-to-line on the scrubber
+  is not, since the full trace (up to the 2,000-step cap) already loads
+  and scrubbing/auto-play covers the same need for every puzzle actually
+  seeded so far (none come close to the cap). Easy to add if a specific
+  puzzle ever needs it.
+- **Predict-first is self-assessed**, as noted above - flagging again
+  here since it's a product-design interpretation of a slightly
+  ambiguous BUILD.md line ("show whether the prediction matched"), not
+  a literal spec.
+
+## Documentation pass (2026-11-22)
+
+Added a "For Teachers" section to `README.md` (Simon's request) - the
+README was entirely developer-facing before this (quick start, local
+Laragon setup, project layout). The new section covers, in plain
+language rather than BUILD.md's spec tone: the five tracks and what each
+teaches, the Debugging Loop, what each student-facing tool (Hints, Error
+Explainer, Trace, Diagnose, Predict, Concept cards) is actually for,
+sharing a puzzle/concept link as homework, and - most important for a
+teacher to know before relying on this in class - **there are no student
+accounts**: progress is `localStorage`-only, there's no gradebook/class
+roster view, and Export/Import on the Progress page is the only way to
+get evidence of a student's work off their own browser. Also documents
+the actual current admin bootstrap/role/verify-then-publish workflow
+(describes the real behaviour as built in Phase 3, not BUILD.md 8's
+original aspirational spec - e.g. no "capture from fixed code" helper,
+no gutter-click bug flagging, no "preview as student" mode, matching the
+Phase 3 entry's documented simplifications above). Deliberately didn't
+hardcode this machine's actual bootstrap admin credential into the
+README - only the generic `php api/tools/create_admin.php` bootstrap
+command, since README is checked into git.
+
+`PROGRESS.md` itself (this file) needed no corrections - re-read in full
+during this pass and everything through Phase 4 still matches the live
+code.
+
+## Next: Phase 5 (Content, accessibility, release)
+
+Per BUILD.md 13: the Appendix A seed curriculum is already fully built
+(Phase 3), so this phase is mainly the accessibility pass against
+section 11, a settings panel and themes, README/About page/
+THIRD_PARTY.md/deploy notes, and the Hostinger deploy check (10.4).

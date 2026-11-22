@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import ReactMarkdown from 'react-markdown'
 import client from '../api/client'
 import CodeEditor from '../editor/CodeEditor'
 import Console from '../components/Console'
@@ -9,18 +10,21 @@ import DebugLoopStepper from '../components/DebugLoopStepper'
 import HintPanel from '../components/HintPanel'
 import ExplanationPanel from '../components/ExplanationPanel'
 import BadgeToast from '../components/BadgeToast'
+import TraceView from '../components/TraceView'
 import harnessSource from '../python/harness.py?raw'
-import { init, interrupt, isInteractiveInputSupported, run, runTests, submitStdinLine } from '../python/runner'
-import { getHint, getPuzzle, getPuzzlesForTrack, getSolution } from '../api/puzzles'
+import { init, interrupt, isInteractiveInputSupported, run, runTests, submitStdinLine, traceRun } from '../python/runner'
+import { getConceptTitleMap, getHint, getPuzzle, getPuzzlesForTrack, getSolution } from '../api/puzzles'
 import { computeXp, mergeScoringConfig } from '../config/scoring'
 import { getPuzzleState, loadProgress, recordGiveUp, recordSolve, saveProgress, updatePuzzleState } from '../store/progress'
 
 /**
  * The puzzle player (BUILD.md 9.2-9.3): brief + Debugging Loop on the
  * left, Monaco in the middle, a Console/Tests/Error Explainer tab set on
- * the right. Diagnose/Trace/Predict are Phase 4 work - the Debugging
- * Loop's "Locate" step has no trigger to tick yet because of that, which
- * is expected, not a bug.
+ * the right. Diagnose (BUILD.md 3.3) uses the cursor's current line
+ * rather than a gutter click - mouse-only gutter interaction would
+ * conflict with "fully keyboard operable" (CLAUDE.md), and a button
+ * satisfies BUILD.md's "click the gutter, or a button using the cursor
+ * line" either/or wording without extra Monaco wiring.
  */
 export default function Puzzle() {
   const { slug } = useParams()
@@ -49,6 +53,11 @@ export default function Puzzle() {
   const [gaveUp, setGaveUp] = useState(false)
   const [xpAwarded, setXpAwarded] = useState(0)
   const [newBadges, setNewBadges] = useState([])
+  const [conceptTitles, setConceptTitles] = useState(new Map())
+  const [diagnoseDraft, setDiagnoseDraft] = useState(null) // { line, type } while the picker is open, not yet confirmed
+  const [predictionText, setPredictionText] = useState('')
+  const [traceResult, setTraceResult] = useState(null)
+  const [traceStatus, setTraceStatus] = useState('idle') // idle | running
   const editorRef = useRef(null)
   const interactiveInput = isInteractiveInputSupported()
 
@@ -72,6 +81,10 @@ export default function Puzzle() {
     setHypothesisNote('')
     setLines([])
     setError(null)
+    setDiagnoseDraft(null)
+    setPredictionText('')
+    setTraceResult(null)
+    setTraceStatus('idle')
 
     getPuzzle(slug).then(async (loaded) => {
       if (cancelled || !loaded) return
@@ -95,6 +108,7 @@ export default function Puzzle() {
   useEffect(() => {
     client.get('/public-config.php').then((res) => setAppConfig(res.data.data))
     init({ pyodideUrl: '/pyodide/', harnessSource }).then(() => setStatus('ready'))
+    getConceptTitleMap().then(setConceptTitles)
   }, [])
 
   // Autosave the draft, debounced, whenever the code changes.
@@ -224,28 +238,39 @@ export default function Puzzle() {
 
     if (allPassed && !solved) {
       const testRuns = getPuzzleState(progress, puzzle.slug).testRuns + 1
+      const sol = await getSolution(puzzle.slug)
+      const diagnosis = getPuzzleState(progress, puzzle.slug).diagnosis
+      const usedTrace = getPuzzleState(progress, puzzle.slug).usedTrace
+      const correctDiagnosis =
+        diagnosis.line !== null &&
+        diagnosis.type !== null &&
+        sol.bugs.some((b) => diagnosis.line >= b.line_start && diagnosis.line <= b.line_end && b.bug_type === diagnosis.type)
+
       const xp = computeXp({
         difficulty: puzzle.difficulty,
         xpOverride: puzzle.xp,
         hintTiersUsed: revealedTiers,
-        correctDiagnosis: false,
+        correctDiagnosis,
         testRunCount: testRuns,
         gaveUp: false,
         scoring,
       })
       setXpAwarded(xp)
       const trackPuzzles = await getPuzzlesForTrack(puzzle.track)
-      const nextProgress = recordSolve(progress, {
+      let nextProgress = recordSolve(progress, {
         slug: puzzle.slug,
         trackSlug: puzzle.track,
         bugType: puzzle.bug_type,
         xpAwarded: xp,
-        usedTrace: false,
+        usedTrace,
         trackPuzzleSlugs: trackPuzzles.map((p) => p.slug),
       })
+      if (diagnosis.line !== null) {
+        nextProgress = updatePuzzleState(nextProgress, puzzle.slug, { diagnosis: { ...diagnosis, correct: correctDiagnosis } })
+      }
       setNewBadges(nextProgress.badges.filter((b) => !progress.badges.includes(b)))
       setProgress(nextProgress)
-      setSolution(await getSolution(puzzle.slug))
+      setSolution(sol)
     }
   }
 
@@ -261,6 +286,35 @@ export default function Puzzle() {
 
   function handleReset() {
     setCode(puzzle.buggy_code)
+  }
+
+  function handleFlagLine() {
+    const line = editorRef.current?.getCursorLine() ?? 1
+    setDiagnoseDraft({ line, type: 'syntax' })
+  }
+
+  function handleConfirmDiagnosis() {
+    persistProgress((prev) =>
+      updatePuzzleState(prev, puzzle.slug, { diagnosis: { line: diagnoseDraft.line, type: diagnoseDraft.type, correct: null } }),
+    )
+    setDiagnoseDraft(null)
+  }
+
+  async function handleTrace(test = null) {
+    setActiveTab('trace')
+    setTraceStatus('running')
+    const result = await traceRun(
+      code,
+      { entryMode: puzzle.entry_mode, entryName: puzzle.entry_name, test },
+      appConfig?.runTimeoutMs ?? 5000,
+    )
+    setTraceStatus('idle')
+    setTraceResult(result)
+    persistProgress((prev) => updatePuzzleState(prev, puzzle.slug, { usedTrace: true }))
+  }
+
+  function handleCancelDiagnosis() {
+    setDiagnoseDraft(null)
   }
 
   function openTab(tab) {
@@ -309,11 +363,17 @@ export default function Puzzle() {
         <button type="button" className="btn" onClick={handleRunTests} disabled={status !== 'ready'}>
           Run tests
         </button>
+        <button type="button" className="btn" onClick={() => handleTrace(null)} disabled={status !== 'ready' || traceStatus === 'running'}>
+          Trace
+        </button>
         <button type="button" className="btn" onClick={handleStop} disabled={status !== 'running'}>
           Stop
         </button>
         <button type="button" className="btn" onClick={handleReset}>
           Reset
+        </button>
+        <button type="button" className="btn" onClick={handleFlagLine} disabled={status !== 'ready' || solved}>
+          Flag suspect line
         </button>
         <button type="button" className="btn btn--danger" onClick={handleGiveUp}>
           {showGiveUpConfirm ? 'Really give up? Click again to confirm' : 'Give up'}
@@ -326,17 +386,60 @@ export default function Puzzle() {
         </span>
       </div>
 
+      {diagnoseDraft && (
+        <div className="puzzle__diagnose-picker">
+          <span>Line {diagnoseDraft.line} is:</span>
+          <select value={diagnoseDraft.type} onChange={(e) => setDiagnoseDraft({ ...diagnoseDraft, type: e.target.value })} aria-label="Bug type">
+            <option value="syntax">syntax</option>
+            <option value="runtime">runtime</option>
+            <option value="logic">logic</option>
+          </select>
+          <button type="button" className="btn btn--small btn--primary" onClick={handleConfirmDiagnosis}>
+            Confirm
+          </button>
+          <button type="button" className="btn btn--small" onClick={handleCancelDiagnosis}>
+            Cancel
+          </button>
+        </div>
+      )}
+      {!diagnoseDraft && puzzleState.diagnosis.line !== null && (
+        <p className="puzzle__diagnose-status">
+          Diagnosis: line {puzzleState.diagnosis.line} ({puzzleState.diagnosis.type})
+          {puzzleState.diagnosis.correct === true && ' - correct!'}
+          {puzzleState.diagnosis.correct === false && ' - not quite, see the explanation once you solve it'}
+        </p>
+      )}
+
       <div className="puzzle__layout">
         <aside className="puzzle__left">
           <section>
             <h2>Brief</h2>
-            <p>{puzzle.brief_md}</p>
+            <ReactMarkdown>{puzzle.brief_md}</ReactMarkdown>
           </section>
+
+          {puzzle.predict_prompt_md && (
+            <section>
+              <h2>Predict</h2>
+              {!hasRunOrTested ? (
+                <>
+                  <ReactMarkdown>{puzzle.predict_prompt_md}</ReactMarkdown>
+                  <label htmlFor="prediction">Your prediction</label>
+                  <textarea id="prediction" rows={2} value={predictionText} onChange={(e) => setPredictionText(e.target.value)} />
+                </>
+              ) : predictionText.trim() ? (
+                <p className="puzzle__prediction-recap">
+                  Your prediction: <em>{predictionText}</em> - did it match what actually happened?
+                </p>
+              ) : (
+                <p className="puzzle__prediction-recap">You ran the code before writing a prediction - try that first next time.</p>
+              )}
+            </section>
+          )}
 
           <section>
             <h2>Debugging Loop</h2>
             <DebugLoopStepper
-              completed={[hasRunOrTested, readStepDone, false, hypothesisNote.trim().length > 0, fixStepDone, allTestsPassed]}
+              completed={[hasRunOrTested, readStepDone, puzzleState.diagnosis.line !== null, hypothesisNote.trim().length > 0, fixStepDone, allTestsPassed]}
             />
           </section>
 
@@ -359,6 +462,19 @@ export default function Puzzle() {
               onReveal={handleRevealHint}
             />
           </section>
+
+          {puzzle.concepts.length > 0 && (
+            <section>
+              <h2>Concepts</h2>
+              <ul className="puzzle__concepts">
+                {puzzle.concepts.map((slug) => (
+                  <li key={slug}>
+                    <Link to={`/concepts/${slug}`}>{conceptTitles.get(slug) ?? slug}</Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </aside>
 
         <div className="puzzle__editor">
@@ -372,6 +488,9 @@ export default function Puzzle() {
             </button>
             <button type="button" className="tab-button" role="tab" aria-selected={activeTab === 'tests'} onClick={() => openTab('tests')}>
               Tests
+            </button>
+            <button type="button" className="tab-button" role="tab" aria-selected={activeTab === 'trace'} onClick={() => openTab('trace')}>
+              Trace
             </button>
             <button type="button" className="tab-button" role="tab" aria-selected={activeTab === 'errors'} onClick={() => openTab('errors')}>
               Error Explainer
@@ -402,8 +521,10 @@ export default function Puzzle() {
           )}
 
           {activeTab === 'tests' && (
-            <TestResults tests={puzzle.tests} results={testResultsByIndex} runningIndex={runningTestIndex} status={testStatus} />
+            <TestResults tests={puzzle.tests} results={testResultsByIndex} runningIndex={runningTestIndex} status={testStatus} onTraceTest={handleTrace} />
           )}
+
+          {activeTab === 'trace' && <TraceView trace={traceResult} status={traceStatus} editorRef={editorRef} />}
 
           {activeTab === 'errors' && <ErrorExplainer error={error} />}
         </div>

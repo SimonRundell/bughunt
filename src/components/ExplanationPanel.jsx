@@ -1,7 +1,9 @@
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { DiffEditor } from '@monaco-editor/react'
 import ReactMarkdown from 'react-markdown'
 import { setupMonaco } from '../editor/monacoSetup'
+import { getConceptTitleMap } from '../api/puzzles'
 
 setupMonaco()
 
@@ -9,8 +11,8 @@ setupMonaco()
  * Post-solve (or post-give-up) explanation (BUILD.md 3.3, 9.3): what each
  * bug was with its lines highlighted in a read-only diff, why Python
  * behaved that way, a "spot it next time" habit, and the student's code
- * side by side with the fix. Concept links are plain text for now - the
- * `/concepts` pages themselves are Phase 4 work.
+ * side by side with the fix. Links to the relevant concept cards, both
+ * per-bug and for the puzzle as a whole.
  *
  * @param {object} props
  * @param {object} props.solution - from getSolution(slug): fixed_code, bugs, explanation_md, spot_it_md
@@ -21,6 +23,11 @@ setupMonaco()
  */
 export default function ExplanationPanel({ solution, studentCode, xpAwarded, gaveUp, concepts = [] }) {
   const modifiedEditorRef = useRef(null)
+  const [conceptTitles, setConceptTitles] = useState(new Map())
+
+  useEffect(() => {
+    getConceptTitleMap().then(setConceptTitles)
+  }, [])
 
   function handleDiffMount(editor, monaco) {
     modifiedEditorRef.current = editor.getModifiedEditor()
@@ -50,6 +57,11 @@ export default function ExplanationPanel({ solution, studentCode, xpAwarded, gav
             <ReactMarkdown>{bug.what_md}</ReactMarkdown>
             <p className="explanation-panel__fix-label">Fix:</p>
             <ReactMarkdown>{bug.fix_md}</ReactMarkdown>
+            {bug.concept && (
+              <p className="explanation-panel__bug-concept">
+                Concept: <Link to={`/concepts/${bug.concept}`}>{conceptTitles.get(bug.concept) ?? bug.concept}</Link>
+              </p>
+            )}
           </li>
         ))}
       </ul>
@@ -87,7 +99,17 @@ export default function ExplanationPanel({ solution, studentCode, xpAwarded, gav
         />
       </div>
 
-      {concepts.length > 0 && <p className="explanation-panel__concepts">Concepts: {concepts.join(', ')}</p>}
+      {concepts.length > 0 && (
+        <p className="explanation-panel__concepts">
+          Concepts:{' '}
+          {concepts.map((slug, i) => (
+            <span key={slug}>
+              {i > 0 && ', '}
+              <Link to={`/concepts/${slug}`}>{conceptTitles.get(slug) ?? slug}</Link>
+            </span>
+          ))}
+        </p>
+      )}
     </div>
   )
 }

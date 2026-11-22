@@ -227,4 +227,10 @@ export const concepts = [
     summary: '== compares values; is compares identity (the exact same object).',
     lesson_md: "## What it is\n\n`==` asks \"do these have the same value?\". `is` asks \"are these the exact same object in memory?\".\n\n## What it looks like when it goes wrong\n\nTwo lists (or other objects) with identical contents compare as not equal when checked with `is`.\n\n## How to spot it\n\nCheck whether `is` is being used where a value comparison (`==`) was actually meant.\n\n## How to fix it\n\nUse `==` for value comparisons; reserve `is` for `None` checks or genuine identity checks.\n\n## Try it\n\n```python run\na = [1, 2, 3]\nb = [1, 2, 3]\nprint(a == b)\nprint(a is b)\n```",
   },
+  {
+    slug: 'reading-tracebacks',
+    title: 'Reading tracebacks',
+    summary: 'Start at the last line and work up - that names the error and shows where it happened.',
+    lesson_md: "## What it is\n\nA traceback is Python's full error report: the exception type and message at the bottom, and the chain of calls that led there above it, in the order Python followed them.\n\n## What it looks like when it goes wrong\n\n```\nTraceback (most recent call last):\n  File \"<student>\", line 2, in <module>\n    print(divide(10, 0))\n  File \"<student>\", line 1, in divide\n    return a / b\nZeroDivisionError: division by zero\n```\n\n## How to spot it\n\nStart at the very last line - that names the exception and the message. Then look at the line just above it, which shows where in your code it actually happened. Lines further up show how execution got there (useful for recursion or nested calls), but the bottom two lines are where to look first.\n\n## How to fix it\n\nUse the exception type and message to work out what went wrong, then fix the line the traceback points to - not just the first line of the program.\n\n## Try it\n\n```python run\ndef divide(a, b):\n    return a / b\n\nprint(divide(10, 0))\n```",
+  },
 ]

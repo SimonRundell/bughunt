@@ -517,12 +517,14 @@ every visit).
   helper), and there's no "preview as a student would see it" mode. Fine
   for Simon authoring content directly; worth revisiting if non-technical
   teachers end up authoring puzzles too.
-- **Badge art**: `trackcomplete2.png` was supplied but isn't referenced
-  anywhere (`badgeImages.js` only maps one `track-complete` image for all
-  tracks) - worth asking Simon whether it was meant to vary by track.
-  `trace-master`, `boss-slayer` and `streak` badges have no dedicated art
-  yet, but they're Phase 4/5 features and not actually earnable yet, so
-  this isn't blocking.
+- **Badge art - resolved (2026-11-21)**: Simon supplied full art for every
+  badge the app can award, and the streak system was expanded from one
+  flat 3-day badge to 8 milestone tiers (`streak-5` through `streak-1000`,
+  `STREAK_TIERS` in `scoring.js`) to match the art he'd already prepared.
+  `badgeImages.js` now maps all of them, including one distinct
+  `track-complete-*` image per track (was a single shared image before).
+  `trace-master` also has art now even though it can't be earned yet
+  (Tracer is Phase 4) - it'll just work once that feature lands.
 - **Default admin credential** (`spr` / a test password set via
   `create_admin.php`) is a dev-only bootstrap account - change it (or
   create a proper named account and delete this one) before any real

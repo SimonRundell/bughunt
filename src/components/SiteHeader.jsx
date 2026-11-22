@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import { loadProgress, PROGRESS_CHANGED_EVENT } from '../store/progress'
 import XpBar from './XpBar'
 
 /**
  * Persistent brand bar shown on every page: logo, title (links back to
- * `/`) and the XP bar. Mounted once in App.jsx rather than per-page, so
- * its XP figure re-reads progress on `PROGRESS_CHANGED_EVENT` (dispatched
- * by `saveProgress`) instead of going stale between page navigations.
+ * `/`), top-level nav (Debug/Playground/Progress/Admin) and the XP bar.
+ * Mounted once in App.jsx rather than per-page, so its XP figure re-reads
+ * progress on `PROGRESS_CHANGED_EVENT` (dispatched by `saveProgress`)
+ * instead of going stale between page navigations.
  */
 export default function SiteHeader() {
   const [progress, setProgress] = useState(() => loadProgress())
@@ -24,6 +25,20 @@ export default function SiteHeader() {
         <img src="/favicon.png" alt="BugHunt logo" className="site-header__logo" />
         <h1>BugHunt</h1>
       </Link>
+      <nav className="site-header__nav" aria-label="Main">
+        <NavLink to="/debug" className={({ isActive }) => (isActive ? 'active' : '')}>
+          Debug
+        </NavLink>
+        <NavLink to="/playground" className={({ isActive }) => (isActive ? 'active' : '')}>
+          Playground
+        </NavLink>
+        <NavLink to="/progress" className={({ isActive }) => (isActive ? 'active' : '')}>
+          Progress
+        </NavLink>
+        <NavLink to="/admin" className={({ isActive }) => (isActive ? 'active' : '')}>
+          Admin
+        </NavLink>
+      </nav>
       <XpBar xp={progress.xp} />
     </header>
   )

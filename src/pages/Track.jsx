@@ -26,7 +26,7 @@ export default function Track() {
 
   return (
     <div className="track">
-      <Link to="/" className="btn btn--small back-link">&larr; All tracks</Link>
+      <Link to="/debug" className="btn btn--small back-link">&larr; All tracks</Link>
       <h1>{track.title}</h1>
       <p>{track.intro_md}</p>
 

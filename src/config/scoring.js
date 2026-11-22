@@ -96,8 +96,18 @@ export const BADGES = {
   'trace-master': { title: 'Trace Master', description: 'Solved a logic puzzle after using Trace.' },
   'no-hints-track': { title: 'No Hints', description: 'Completed a whole track without using any hints.' },
   'boss-slayer': { title: 'Boss Slayer', description: 'Solved a Boss Fights puzzle.' },
-  streak: { title: 'Streak', description: 'Solved at least one puzzle on 3 days in a row.' },
+  'streak-5': { title: 'Streak - 5 Days', description: 'Solved at least one puzzle on 5 days in a row.' },
+  'streak-10': { title: 'Streak - 10 Days', description: 'Solved at least one puzzle on 10 days in a row.' },
+  'streak-20': { title: 'Streak - 20 Days', description: 'Solved at least one puzzle on 20 days in a row.' },
+  'streak-50': { title: 'Streak - 50 Days', description: 'Solved at least one puzzle on 50 days in a row.' },
+  'streak-100': { title: 'Streak - 100 Days', description: 'Solved at least one puzzle on 100 days in a row.' },
+  'streak-200': { title: 'Streak - 200 Days', description: 'Solved at least one puzzle on 200 days in a row.' },
+  'streak-500': { title: 'Streak - 500 Days', description: 'Solved at least one puzzle on 500 days in a row.' },
+  'streak-1000': { title: 'Streak - 1000 Days', description: 'Solved at least one puzzle on 1000 days in a row.' },
 }
+
+/** Streak badge day-thresholds, ascending - the id is `streak-<days>`. */
+export const STREAK_TIERS = [5, 10, 20, 50, 100, 200, 500, 1000]
 
 /** @param {string} trackSlug @returns {string} the "Track Complete" badge id for a given track */
 export function trackCompleteBadgeId(trackSlug) {

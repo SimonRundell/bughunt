@@ -75,7 +75,7 @@ export default function AdminPuzzleList() {
         <Link to="/admin/puzzles/new" className="btn btn--primary">
           New puzzle
         </Link>
-        <select value={trackFilter} onChange={(e) => setTrackFilter(e.target.value)} aria-label="Filter by track">
+        <select value={trackFilter} className="btn btn--small blacktext" onChange={(e) => setTrackFilter(e.target.value)} aria-label="Filter by track">
           <option value="all">All tracks</option>
           {tracks.map((t) => (
             <option key={t} value={t}>

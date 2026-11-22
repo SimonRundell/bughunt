@@ -49,6 +49,10 @@ export default function AdminLogin() {
         <button type="submit" className="btn btn--primary" disabled={busy}>
           {busy ? 'Logging in…' : 'Log in'}
         </button>
+
+        <button type="button" className="btn btn--secondary" onClick={() => navigate('/')} disabled={busy}>
+          Cancel
+        </button> 
       </form>
     </div>
   )

@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import Home from './pages/Home'
+import Debug from './pages/Debug'
 import Track from './pages/Track'
 import Puzzle from './pages/Puzzle'
 import Progress from './pages/Progress'
@@ -32,6 +33,7 @@ function App() {
       {!isAdmin && <SiteHeader />}
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/debug" element={<Debug />} />
         <Route path="/track/:slug" element={<Track />} />
         <Route path="/puzzle/:slug" element={<Puzzle />} />
         <Route path="/progress" element={<Progress />} />

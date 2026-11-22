@@ -5,7 +5,7 @@
  * The shape is versioned so a future change can migrate old saves instead
  * of silently discarding them.
  */
-import { BADGES, trackCompleteBadgeId } from '../config/scoring'
+import { BADGES, STREAK_TIERS, trackCompleteBadgeId } from '../config/scoring'
 
 export const STORAGE_KEY = 'bughunt.progress.v1'
 export const CURRENT_VERSION = 1
@@ -172,7 +172,9 @@ export function recordSolve(progress, { slug, trackSlug, bugType, xpAwarded, use
     next = awardBadge(next, 'read-the-error', isEarlyTrack && hintsUsed.length === 0)
     next = awardBadge(next, 'trace-master', bugType === 'logic' && usedTrace)
     next = awardBadge(next, 'boss-slayer', trackSlug === 'boss-fights')
-    next = awardBadge(next, 'streak', next.streak.days >= 3)
+    for (const tier of STREAK_TIERS) {
+      next = awardBadge(next, `streak-${tier}`, next.streak.days >= tier)
+    }
 
     if (trackPuzzleSlugs.length > 0) {
       const allSolved = trackPuzzleSlugs.every((s) => next.puzzles[s]?.solvedAt)

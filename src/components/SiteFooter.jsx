@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom'
 export default function SiteFooter() {
   return (
     <footer className="site-footer">
-      <Link to="/about">About</Link>
+      <Link to="/about" className="btn">About</Link>
     </footer>
   )
 }

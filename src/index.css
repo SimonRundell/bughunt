@@ -210,13 +210,6 @@ a {
   padding: var(--space-4);
 }
 
-.site-footer a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 0 var(--space-3);
-}
-
 @media (max-width: 599px) {
   .site-header .xp-bar {
     margin-left: 0;

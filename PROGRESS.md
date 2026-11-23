@@ -5,10 +5,115 @@ built, what's verified, and what's still open, so work can be picked up
 without re-deriving context. Updated at the end of each phase (and
 mid-phase when something notable changes).
 
-## Status: Phase 5 done (content, accessibility, release prep), except Hostinger deploy (deferred)
+## Status: Phase 5 done (content, accessibility, release prep), except Hostinger deploy (deferred); content expanded to 205 puzzles / 61 concepts (2026-11-22)
 
 Last verified: 2026-11-22, against the live dev server (`npm run dev`,
 Vite on :5173) and Laragon's Apache/PHP (:80) + MariaDB (:3306).
+
+## Content expansion: +150 puzzles across all 5 tracks (2026-11-22)
+
+Simon asked for another 30 puzzles per track (basic to advanced within
+each track's existing difficulty range), on top of Phase 3's original 55.
+Authored in the same `scripts/seed/trackN.mjs` + Node+Pyodide verification
+workflow as Phase 3: each batch written to a scratch `trackN_batch2.mjs`,
+spliced into the real file, then the whole 205-puzzle set re-verified with
+`node scripts/seed/generate.mjs` (fixed_code passes every test, buggy_code
+fails at least one, every time, no exceptions) before touching the
+database. One new concept card, `wrong-operator` ("the wrong arithmetic
+operator", e.g. `+` instead of `*` in a formula) - the only genuinely new
+teachable pattern across all 150 puzzles; everything else reused one of
+the existing 60 concept cards.
+
+New counts per track: Spot the Typo 40, Crash Course 40, Wrong Answer 42,
+Deep Bugs 43, Boss Fights 40 (205 total); 61 concepts.
+
+### Bugs found and fixed during authoring (all caught by the real-Pyodide
+verification harness, not by hand)
+
+- **Dict literals with non-string keys can't use `deriveExpected`.**
+  `build.mjs`'s `pyRepr()` always renders JS object keys as JSON-quoted
+  strings (`{"1": 2, ...}`), but Python code returning a dict with
+  genuine `int` keys (`tally_rolls`, a dice-face counter) produces
+  `{1: 2, ...}` - `ast.literal_eval` then parses the expected value with
+  string keys, which never equals the actual int-keyed dict even though
+  both print identically as JSON. Fixed by writing `expect_py` by hand
+  for that puzzle's three tests instead of relying on auto-derivation -
+  the first time this session needed a manual `expect_py` rather than
+  the usual derived one.
+- **Two aliasing bugs were invisible to return-value-only tests.**
+  `playlist-shuffle-manager` and `bubble-sort-implementation` both had a
+  real bug (mutating the caller's original list via `.remove()`/`.insert()`
+  or forgetting `.copy()` before sorting in place) that doesn't change the
+  *return value* at all - only a side effect on the argument, which
+  function-mode tests never observe. Fixed by converting both to
+  `entry_mode: 'script'` (the same pattern already established in Phase
+  3 for `doubled = original.copy()`), printing both the original and the
+  result so the side effect shows up in `stdout`.
+- **A "no bug" puzzle violated the harness's core invariant.**
+  `linear-search-with-count` was originally authored as a deliberate
+  "nothing's actually wrong here, just non-idiomatic style" puzzle - but
+  `verify()` requires buggy_code to fail at least one test by design, so
+  identical-behaviour buggy/fixed code can never pass verification.
+  Replaced with a genuine bug (incrementing the comparison counter only
+  inside the `if match:` branch, undercounting every non-matching
+  comparison).
+- **A type-only difference is invisible to the comparison.** `gcd_and_lcm`
+  originally used `/` instead of `//` for the LCM formula - but LCM always
+  divides evenly, so `36.0 == 36` is `True` under Python's own equality,
+  meaning the "bug" never actually changed any test's pass/fail outcome.
+  Replaced with a genuine value-wrong bug (`(a + b) // g` instead of
+  `a * b // g`) - prompted adding the one new concept card, since no
+  existing one covered "right variables, wrong operator" specifically.
+- **A "self-correcting" bug hid behind a trailing slice.**
+  `fibonacci_sequence`'s original bug (looping `n` times instead of
+  `n - 2` times) never actually changed the output, because the function
+  always ends with `return sequence[:n]` - overshooting the loop just
+  means extra correct values get computed and then sliced away again.
+  Replaced with a bug that changes actual values instead of just how many
+  get computed: seeding the sequence as `[1, 1]` instead of `[0, 1]`,
+  which shifts every output by one position.
+- **Mutable-default bug needed script mode, same root cause as Phase 3's
+  `add_item`/`basket=[]` puzzle.** `calculate`'s `history=[]` default is
+  only observably shared across calls that happen within the *same*
+  script execution - separate `tests[]` entries each get a fresh
+  `exec()` of the whole module (confirmed structural behaviour of
+  `run_one_test`), so the bug was invisible across function-mode test
+  cases. Fixed the same way as the equivalent Phase 3 puzzle: converted
+  to `entry_mode: 'script'` with two sequential calls in one script body,
+  checked via `stdout`.
+- **Stale hardcoded puzzle-count comment in `generate.mjs`.** The header
+  comment written into every generated `seed.sql` ("Seeds all 5 tracks,
+  38 concepts and 55 puzzles") was a literal string from Phase 3, never
+  updated as content grew - noticed while regenerating `seed.sql` for
+  this expansion and the comment still said 38/55 against a 61/205
+  reality. Fixed to interpolate `tracks.length`/`concepts.length`/
+  `puzzles.length` so it can't go stale again.
+
+### Database reseed (confirmed with Simon before running - destructive on
+content tables)
+
+Cleared `bh_puzzles` (cascades to `bh_puzzle_tests`/`bh_hints`/
+`bh_puzzle_bugs`/`bh_puzzle_concepts`), `bh_tracks`, `bh_concepts` via the
+Laragon-bundled `mysql` CLI, then reloaded the regenerated `seed.sql`.
+Confirmed live counts after reload: 5 tracks, 61 concepts, 205 puzzles,
+588 tests, 615 hints, 218 bugs. No student-progress table exists in the
+schema at all (progress is `localStorage`-only, per the Phase 3/teacher-
+README note), so this reseed had nothing else to risk.
+
+### Verified live (interactive browser preview)
+
+- `/debug` (the track map) shows the new per-track counts: Spot the Typo
+  40, Crash Course 40, Wrong Answer 42, Deep Bugs 43, Boss Fights 40.
+- `/track/boss-fights` lists the new puzzles (Quiz Scorer, Playlist
+  Manager, GCD and LCM Calculator, Bubble Sort, etc.) alongside the
+  original 10.
+- Opened a new puzzle (`gcd-lcm-calculator`) directly from the live
+  database: brief, predict prompt, hints and the new "The wrong
+  arithmetic operator" concept link all render correctly; "Run tests"
+  against the real starting (buggy) code correctly reports "0 of 3 tests
+  passed" - confirming the seeded buggy/fixed/test data round-trips
+  through the real API and Pyodide harness end to end, not just through
+  the Node-side verification script.
 
 ## Design pass (2026-11-20) - applying CLAUDE.md's UI/UX and accessibility rules
 

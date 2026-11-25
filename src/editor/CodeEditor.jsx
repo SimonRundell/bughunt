@@ -1,5 +1,6 @@
 import { Editor } from '@monaco-editor/react'
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
+import * as monaco from 'monaco-editor/editor/editor.api'
 import { setupMonaco } from './monacoSetup'
 
 setupMonaco()
@@ -60,6 +61,33 @@ const CodeEditor = forwardRef(function CodeEditor(
       )
     },
   }))
+
+  useEffect(() => {
+    // Monaco caches character-width measurements per font and only redoes
+    // them when told to. OpenDyslexic (@fontsource/opendyslexic) is a
+    // webfont that may still be downloading the first time it's selected,
+    // so Monaco can measure and cache widths from the fallback font before
+    // the real glyphs are on screen - the caret is positioned from those
+    // cached widths, so it then renders offset from the actual text.
+    // Force the requested family to finish loading, then clear Monaco's
+    // cache so it re-measures against what's actually rendered.
+    let cancelled = false
+    async function remeasure() {
+      try {
+        if (document.fonts) {
+          await document.fonts.load(`16px ${fontFamily}`)
+          await document.fonts.ready
+        }
+      } catch {
+        // best-effort - still remeasure below even if the load request failed
+      }
+      if (!cancelled) monaco.editor.remeasureFonts()
+    }
+    remeasure()
+    return () => {
+      cancelled = true
+    }
+  }, [fontFamily])
 
   useEffect(() => {
     // Ongoing resizes after mount (e.g. a window resize) - automaticLayout

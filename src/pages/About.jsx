@@ -32,7 +32,13 @@ export default function About() {
           <code>localStorage</code> - it is never sent to or stored on any server. Clearing your browser data erases
           it; the Progress page's Export button lets you save a copy as a file first if you want one.
         </p>
-        <p>Your code is never sent anywhere either - every run happens locally, in your browser, in the worker described above.</p>
+        <p>
+          Your code is never sent anywhere either - every run happens locally, in your browser, in the worker
+          described above. A handful of a puzzle&apos;s tests are hidden rather than shown, so their answers aren&apos;t
+          just sitting in the page; checking one of those is the only exception, and it sends just what your code
+          produced (a result, some printed text, or an error type) to find out if it matched - never your code, and
+          never the answer.
+        </p>
       </section>
 
       <section className="about__section">

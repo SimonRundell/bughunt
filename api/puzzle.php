@@ -1,11 +1,13 @@
 <?php
 /**
  * GET ?slug= -> one published puzzle's playable detail: brief, buggy
- * code, entry mode/name, tests (hidden ones flagged, not stripped - a
- * soft control per BUILD.md 5.3, not real security), hint count, bug
- * count, predict prompt, concept slugs. Never includes fixed_code, bug
- * descriptions or hint text - those are separate calls (solution.php,
- * hint.php) only fetched when the student actually asks for them.
+ * code, entry mode/name, tests (hidden ones flagged `hidden: true`, and
+ * their `expect_py`/`compare_mode` withheld - grading a hidden test is a
+ * server round trip to grade_hidden_test.php instead, per BUILD.md 5.3),
+ * hint count, bug count, predict prompt, concept slugs. Never includes
+ * fixed_code, bug descriptions or hint text - those are separate calls
+ * (solution.php, hint.php) only fetched when the student actually asks
+ * for them.
  */
 require_once __DIR__ . '/cors.php';
 require_once __DIR__ . '/db.php';
@@ -33,13 +35,21 @@ if (!$puzzle) {
 }
 
 $testsStmt = $pdo->prepare(
-    'SELECT label, args_py, kwargs_py, stdin_text, expect_kind, expect_py, compare_mode, is_hidden
+    'SELECT id, label, args_py, kwargs_py, stdin_text, expect_kind, expect_py, compare_mode, is_hidden
      FROM bh_puzzle_tests WHERE puzzle_id = :id ORDER BY sort_order',
 );
 $testsStmt->execute(['id' => $puzzle['id']]);
 $tests = array_map(static function (array $t): array {
+    $t['id'] = (int) $t['id'];
     $t['hidden'] = (bool) $t['is_hidden'];
     unset($t['is_hidden']);
+    if ($t['hidden']) {
+        // The expected value (and the comparison mode that would hint at
+        // its shape) never reaches the browser for a hidden test -
+        // grading goes through grade_hidden_test.php instead, which holds
+        // these server-side only.
+        unset($t['expect_py'], $t['compare_mode']);
+    }
     return $t;
 }, $testsStmt->fetchAll());
 

@@ -169,8 +169,12 @@ scripts/        Build-time helper scripts (e.g. copy-pyodide.mjs)
 
 Puzzles, hints, tests and lesson content are validation-only on the client:
 the reference solution is never sent until a puzzle is solved or given up
-on, but hidden tests do reach the browser. There are no student accounts;
-progress lives in `localStorage` only.
+on. A hidden test's inputs reach the browser same as a visible one, but its
+expected answer does not - grading it is a small server round trip
+(`api/grade_hidden_test.php`) that sends only what running the student's
+code produced and gets back pass/fail, never the answer. There are no
+student accounts; progress lives in `localStorage` only, with a signature
+that resets it if the saved file is hand-edited outside the app.
 
 ## Licence
 

@@ -9,6 +9,53 @@ import { BADGES, STREAK_TIERS, trackCompleteBadgeId } from '../config/scoring'
 
 export const STORAGE_KEY = 'bughunt.progress.v1'
 export const CURRENT_VERSION = 1
+
+// A non-cryptographic integrity check on the saved blob - the same category
+// of "soft control" as BUILD.md 5.3's hidden-test handling, not real
+// security (there's no account/server to verify against, and anyone
+// willing to read this file can reproduce the hash). It exists to stop the
+// common case reported in practice: pasting a hand-edited object straight
+// into localStorage.setItem - the pasted copy won't carry a matching _sig,
+// so it's treated as corrupt rather than silently accepted. A save made
+// before this check existed (no _sig at all) is accepted once and then
+// re-signed on its next save, so nobody's real progress is wiped by this
+// patch landing.
+const INTEGRITY_PEPPER = 'bh-progress-9f2c71'
+
+/**
+ * JSON.stringify with every object's keys sorted (recursively, arrays keep
+ * their own order) so the result only depends on the data, never on
+ * incidental insertion order - `progress.puzzles` in particular is built
+ * up one `{...spread}` at a time in whatever order puzzles were solved.
+ * @param {*} value
+ * @returns {string}
+ */
+function canonicalStringify(value) {
+  if (Array.isArray(value)) {
+    return `[${value.map(canonicalStringify).join(',')}]`
+  }
+  if (value !== null && typeof value === 'object') {
+    const keys = Object.keys(value).sort()
+    return `{${keys.map((k) => `${JSON.stringify(k)}:${canonicalStringify(value[k])}`).join(',')}}`
+  }
+  return JSON.stringify(value)
+}
+
+/** 32-bit FNV-1a, returned as an 8-character hex string. */
+function fnv1a(text) {
+  let hash = 0x811c9dc5
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0')
+}
+
+/** @param {object} progress @returns {string} signature over every field except `_sig` itself */
+function computeSignature(progress) {
+  const { _sig, ...rest } = progress
+  return fnv1a(INTEGRITY_PEPPER + canonicalStringify(rest))
+}
 /** Dispatched on `window` after every successful save, so long-lived
  * components (e.g. the site header's XP bar) can refresh without a
  * dedicated store/context - see SiteHeader.jsx. */
@@ -61,6 +108,13 @@ export function loadProgress() {
     if (!parsed || typeof parsed !== 'object' || typeof parsed.version !== 'number') {
       return createEmptyProgress()
     }
+    // A save from before the integrity check existed has no _sig at all -
+    // accept it once rather than wipe real progress; saveProgress stamps
+    // one on the next write. A save that HAS a _sig but doesn't match was
+    // edited by something other than this code, so it's treated as corrupt.
+    if (typeof parsed._sig === 'string' && parsed._sig !== computeSignature(parsed)) {
+      return createEmptyProgress()
+    }
     return migrate(parsed)
   } catch {
     return createEmptyProgress()
@@ -70,7 +124,8 @@ export function loadProgress() {
 /** @param {object} progress @returns {boolean} whether the save succeeded */
 export function saveProgress(progress) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(progress))
+    const signed = { ...progress, _sig: computeSignature(progress) }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(signed))
     window.dispatchEvent(new CustomEvent(PROGRESS_CHANGED_EVENT))
     return true
   } catch {
@@ -212,7 +267,12 @@ export function recordGiveUp(progress, slug) {
 
 /** @param {object} progress @returns {string} pretty-printed JSON for download */
 export function exportProgress(progress) {
-  return JSON.stringify(progress, null, 2)
+  // Re-sign rather than export whatever _sig (stale or absent) happens to
+  // be on the in-memory object - keeps the downloaded file self-consistent
+  // even though importProgress itself doesn't require a valid signature
+  // (export/import is a deliberate transfer between browsers, not
+  // something loadProgress's tamper check should ever block).
+  return JSON.stringify({ ...progress, _sig: computeSignature(progress) }, null, 2)
 }
 
 /**

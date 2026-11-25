@@ -225,7 +225,7 @@ export default function Puzzle() {
 
     const results = await runTests(
       code,
-      { entryMode: puzzle.entry_mode, entryName: puzzle.entry_name, tests: puzzle.tests },
+      { entryMode: puzzle.entry_mode, entryName: puzzle.entry_name, tests: puzzle.tests, slug: puzzle.slug },
       {
         onTestStart: (index) => setRunningTestIndex(index),
         onTestResult: (result) => setTestResultsByIndex((prev) => ({ ...prev, [result.index]: result })),

@@ -31,6 +31,27 @@ export async function getPuzzle(slug) {
   return res.data.data
 }
 
+/**
+ * Asks the server to grade one hidden test's already-captured result
+ * (api/grade_hidden_test.php) - the student's code only ever ran in their
+ * own browser; this sends what running it produced, never the code
+ * itself, and the server never reveals the expected value back.
+ * @param {string} slug
+ * @param {number} testId
+ * @param {{raisedType?: string|null, stdout?: string, actual?: *}} observed
+ * @returns {Promise<boolean>}
+ */
+export async function gradeHiddenTest(slug, testId, observed) {
+  const res = await client.post('/grade_hidden_test.php', {
+    slug,
+    testId,
+    raisedType: observed.raisedType ?? null,
+    stdout: observed.stdout ?? '',
+    actual: observed.actual ?? null,
+  })
+  return res.data.data.passed === true
+}
+
 /** @param {string} slug @param {number} tier 1-3 @returns {Promise<string|null>} hint_md */
 export async function getHint(slug, tier) {
   const res = await client.get('/hint.php', { params: { slug, tier } })

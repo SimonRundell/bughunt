@@ -46,19 +46,28 @@ def run_one_test(code, entry_mode, entry_name, test_json):
     """
     Runs one test case in a fresh namespace. `test_json` is a JSON object:
     {label, args_py, kwargs_py, stdin_text, expect_kind, expect_py, compare_mode}.
+    For a hidden test, `expect_py`/`compare_mode` are withheld by the server
+    (BUILD.md 5.3) - `has_expect_py` is False and only what's locally
+    decidable (a crash, or "nothing was raised" for a `raises` test) gets
+    graded here; everything else is `needsServerGrade: True` and left for
+    api/grade_hidden_test.php, which holds the real expect_py.
 
     Returns a JSON string:
-    {"passed": bool, "expected": ..., "actual": ..., "stdout": str,
-     "error": {type, message, line, col, traceback} | null, "ms": number}
+    {"passed": bool | null, "expected": ..., "actual": ..., "stdout": str,
+     "error": {type, message, line, col, traceback} | null, "ms": number,
+     "raisedType": str | null, "needsServerGrade": bool}
 
-    `error` is only set for a genuine crash (one not matching a `raises`
-    expectation) - a correctly-raised or wrongly-raised exception for a
-    `raises` test is a pass/fail outcome, not an error to display.
+    `passed` is null exactly when `needsServerGrade` is true - the caller
+    (runner.js) must resolve it via the server before treating the test as
+    graded. `error` is only set for a genuine crash (one not matching a
+    `raises` expectation) - a correctly-raised or wrongly-raised exception
+    for a `raises` test is a pass/fail outcome, not an error to display.
     """
     test = json.loads(test_json)
     expect_kind = test["expect_kind"]
     compare_mode = test.get("compare_mode") or "exact"
     stdin_text = test.get("stdin_text") or ""
+    has_expect_py = "expect_py" in test
 
     start = time.perf_counter()
 
@@ -97,8 +106,29 @@ def run_one_test(code, entry_mode, entry_name, test_json):
     passed = False
     expected_display = None
     actual_display = None
+    needs_server_grade = False
 
-    if expect_kind == "raises":
+    if not has_expect_py:
+        # Hidden test: expect_py was deliberately withheld from the browser
+        # (BUILD.md 5.3) - only a crash (for a non-"raises" test) or
+        # "nothing was raised" (for a "raises" test) is decidable locally;
+        # everything else goes to api/grade_hidden_test.php, which holds
+        # the real expect_py and is never told the rest of the test suite.
+        if expect_kind == "raises":
+            if raised_type is not None:
+                needs_server_grade = True
+                error = None
+            else:
+                passed = False
+        elif error is not None:
+            passed = False
+        else:
+            needs_server_grade = True
+            if expect_kind == "returns":
+                actual_display = actual
+            # expect_kind == "stdout" needs nothing extra here - stdout_text
+            # is already unconditionally in the result below.
+    elif expect_kind == "raises":
         expected_display = test["expect_py"]
         actual_display = raised_type
         passed = raised_type == test["expect_py"]
@@ -123,12 +153,14 @@ def run_one_test(code, entry_mode, entry_name, test_json):
             passed = actual_display == expected_display
 
     result = {
-        "passed": bool(passed),
+        "passed": None if needs_server_grade else bool(passed),
         "expected": expected_display,
         "actual": actual_display,
         "stdout": stdout_text,
         "error": error,
         "ms": elapsed_ms,
+        "raisedType": raised_type,
+        "needsServerGrade": needs_server_grade,
     }
     return json.dumps(result, cls=_SafeEncoder)
 

@@ -4,6 +4,7 @@
  * executes in a fresh Python namespace (see harness.py) so state never
  * leaks between runs, but the Pyodide runtime itself stays loaded.
  */
+import { gradeHiddenTest } from '../api/puzzles.js'
 
 const STDIN_BUFFER_BYTES = 8 + 8192 // 2 Int32 header slots + 8KB of text
 
@@ -156,13 +157,24 @@ export async function run(code, opts = {}) {
  * namespace per test (harness.py's run_one_test). Each test gets its own
  * timeout, started when its `testStart` message arrives, so one hanging
  * test reports as timed out instead of killing the whole batch (BUILD.md
- * 4.3). Resolves to the full results array once every test has run.
+ * 4.3). A hidden test comes back from the worker with `passed: null` and
+ * `needsServerGrade: true` (its expect_py was withheld, BUILD.md 5.3) -
+ * this grades it via api/grade_hidden_test.php before treating it as
+ * resolved, so every result handed to `onTestResult` and to the returned
+ * array always has a definite boolean `passed`. The worker fires its
+ * `testResult` messages back-to-back without waiting on the main thread,
+ * so grading fetches run concurrently as results stream in and may
+ * resolve out of order across tests; each writes only to its own
+ * `results[index]` slot. Resolves to the full results array once every
+ * test has run AND every grading fetch has settled (a network error
+ * grading a test counts as `passed: false`, never left unresolved).
  *
  * @param {string} code
  * @param {object} puzzle
  * @param {'function'|'script'} puzzle.entryMode
  * @param {string|null} puzzle.entryName
  * @param {object[]} puzzle.tests
+ * @param {string} puzzle.slug - needed to grade hidden tests server-side
  * @param {object} [handlers]
  * @param {(index: number) => void} [handlers.onTestStart]
  * @param {(result: object) => void} [handlers.onTestResult] - result includes `index`
@@ -171,7 +183,7 @@ export async function run(code, opts = {}) {
 export async function runTests(code, puzzle, handlers = {}, timeoutMs = 5000) {
   await readyPromise
   const { onTestStart, onTestResult } = handlers
-  const { entryMode, entryName, tests } = puzzle
+  const { entryMode, entryName, tests, slug } = puzzle
 
   const triggerInterrupt = () => {
     if (interruptArray) {
@@ -181,8 +193,14 @@ export async function runTests(code, puzzle, handlers = {}, timeoutMs = 5000) {
 
   return new Promise((resolve) => {
     const results = []
+    const pendingGrades = []
     let settled = false
     let hardTimer = null
+
+    const finalizeAndEmit = (result) => {
+      results[result.index] = result
+      onTestResult?.(result)
+    }
 
     const onMessage = (event) => {
       const msg = event.data
@@ -192,14 +210,21 @@ export async function runTests(code, puzzle, handlers = {}, timeoutMs = 5000) {
       } else if (msg.type === 'testResult') {
         clearTimeout(hardTimer)
         const { type: _type, ...result } = msg
-        results[result.index] = result
-        onTestResult?.(result)
+        if (result.needsServerGrade) {
+          const testId = tests[result.index]?.id
+          const gradePromise = gradeHiddenTest(slug, testId, result)
+            .then((passed) => finalizeAndEmit({ ...result, passed }))
+            .catch(() => finalizeAndEmit({ ...result, passed: false }))
+          pendingGrades.push(gradePromise)
+        } else {
+          finalizeAndEmit(result)
+        }
       } else if (msg.type === 'testsDone') {
         if (settled) return
         settled = true
         clearTimeout(hardTimer)
         worker.removeEventListener('message', onMessage)
-        resolve(results)
+        Promise.all(pendingGrades).then(() => resolve(results))
       }
     }
     worker.addEventListener('message', onMessage)
